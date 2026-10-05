@@ -1,0 +1,1929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spelling">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 30'%3E%3Cpolygon points='13,1.5 24.5,8.2 24.5,21.8 13,28.5 1.5,21.8 1.5,8.2' fill='%23FFB81C' stroke='%23221C45' stroke-width='2'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Honeycomb Spelling</title>
+<style>
+/* Layout: one centered column on a sky ground. Sticker look: thick ink outlines and hard drop shadows.
+   The play stage is the biggest sticker, and the child's own bee speaks the sentence in a speech bubble. */
+:root {
+  --ground: #C6E8FF;
+  --cloud: rgba(255, 255, 255, .7);
+  --surface: #FFFDF6;
+  --ink: #221C45;
+  --ink-soft: #544D78;
+  --outline: #221C45;
+  --line: #DAD4EE;
+  --pip: rgba(34, 28, 69, .2);
+  --honey: #FFB81C;
+  --honey-deep: #875000;
+  --honey-wash: #FFEEBF;
+  --on-honey: #221C45;
+  --pop: #FF6FA3;
+  --good: #17753F;
+  --good-wash: #D2F3DE;
+  --miss: #BF2F2A;
+  --miss-wash: #FFDEDA;
+  --focus: #2456E0;
+
+  --display: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --body: ui-rounded, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --letters: ui-monospace, "SF Mono", "Menlo", "Consolas", "Courier New", monospace;
+
+  --t-xs: .8125rem;
+  --t-s: .9375rem;
+  --t-m: 1.0625rem;
+  --t-l: 1.4375rem;
+  --t-xl: 2.125rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #161B3D; --cloud: rgba(255, 255, 255, .05); --surface: #272F60; --ink: #F4F1FF; --ink-soft: #B7B4D8;
+    --outline: #070918; --line: #3F4885; --pip: rgba(244, 241, 255, .22);
+    --honey: #FFC533; --honey-deep: #FFD777; --honey-wash: #4A3A12; --on-honey: #221C45; --pop: #FF8DB8;
+    --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #161B3D; --cloud: rgba(255, 255, 255, .05); --surface: #272F60; --ink: #F4F1FF; --ink-soft: #B7B4D8;
+  --outline: #070918; --line: #3F4885; --pip: rgba(244, 241, 255, .22);
+  --honey: #FFC533; --honey-deep: #FFD777; --honey-wash: #4A3A12; --on-honey: #221C45; --pop: #FF8DB8;
+  --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  color: var(--ink);
+  font-family: var(--body); font-weight: 500; font-size: var(--t-m); line-height: 1.5;
+  padding-inline: 16px; padding-block: 16px 56px;
+  background-color: var(--ground);
+  background-image:
+    radial-gradient(ellipse 74px 26px at 10% 70px, var(--cloud) 98%, transparent),
+    radial-gradient(ellipse 42px 24px at calc(10% + 30px) 52px, var(--cloud) 98%, transparent),
+    radial-gradient(ellipse 86px 28px at 88% 168px, var(--cloud) 98%, transparent),
+    radial-gradient(ellipse 46px 26px at calc(88% - 34px) 148px, var(--cloud) 98%, transparent);
+  background-repeat: no-repeat;
+}
+.app { max-width: 46rem; margin-inline: auto; display: flex; flex-direction: column; gap: 26px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-family: var(--display); font-weight: 700; font-size: var(--t-xl); line-height: 1.1; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: var(--t-l); line-height: 1.15; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 600; font-size: var(--t-m); }
+b { font-weight: 800; }
+.soft { color: var(--ink-soft); }
+.small { font-size: var(--t-s); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+.bee { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: var(--t-l); }
+#brand-bee { width: 44px; flex: none; }
+.nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.nav button { background: transparent; border: 3px solid transparent; border-radius: 999px; padding: 4px 14px; cursor: pointer; font-family: var(--display); font-weight: 600; font-size: var(--t-m); }
+.nav button[aria-current="page"] { background: var(--honey); color: var(--on-honey); border-color: var(--outline); box-shadow: 0 3px 0 var(--outline); }
+
+/* buttons */
+.btn { background: var(--honey); color: var(--on-honey); border: 3px solid var(--outline); border-radius: 16px; padding: 10px 22px; font-family: var(--display); font-weight: 600; font-size: 1.1875rem; cursor: pointer; box-shadow: 0 5px 0 var(--outline); transition: transform .06s, box-shadow .06s; }
+.btn:hover { filter: brightness(1.06); }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--outline); }
+.btn.quiet { background: var(--surface); color: var(--ink); font-size: var(--t-m); padding: 8px 18px; }
+.btn.danger { background: var(--miss); color: var(--surface); }
+.btn:disabled { opacity: .5; cursor: default; }
+.link { background: none; border: 0; padding: 4px 0; color: var(--ink-soft); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: var(--t-s); }
+.link:hover { color: var(--ink); }
+
+/* views */
+.view { display: flex; flex-direction: column; gap: 22px; }
+.lede { max-width: 38rem; color: var(--ink-soft); font-weight: 700; }
+.lede.small { font-weight: 500; }
+.title-row { display: flex; align-items: center; gap: 16px; }
+.title-row .bee { width: 88px; flex: none; }
+.title-row h1 { min-width: 0; overflow-wrap: anywhere; }
+
+/* home */
+.players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.pcard { background: var(--surface); border: 3px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--outline); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pcard.test { grid-column: 1 / -1; border-style: dashed; box-shadow: none; }
+.pc-top { display: flex; align-items: center; gap: 14px; }
+.avbtn { background: none; border: 0; padding: 0; width: 78px; flex: none; cursor: pointer; border-radius: 50%; transition: transform .12s; }
+.avbtn:hover { transform: rotate(-6deg) scale(1.06); }
+.avstill { width: 78px; flex: none; }
+.pc-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pc-head h2 { overflow-wrap: anywhere; }
+.tag { font-size: var(--t-xs); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.strip { display: block; width: 100%; max-width: 20rem; height: auto; }
+.pc-stats { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--t-s); color: var(--ink-soft); font-weight: 700; }
+.pc-stats b { color: var(--ink); font-family: var(--display); font-weight: 600; font-variant-numeric: tabular-nums; font-size: var(--t-l); }
+.pc-go { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: auto; }
+.pc-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.pc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: auto; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label, .field .lab { font-size: var(--t-xs); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.field input[type="text"], .field select { background: var(--surface); border: 3px solid var(--outline); border-radius: 12px; padding: 7px 12px; width: 100%; min-width: 0; font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.row > .field { flex: 1 1 9rem; }
+
+/* play */
+.playbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.who { font-family: var(--display); font-weight: 600; font-size: var(--t-l); overflow-wrap: anywhere; }
+.pips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.pip { width: 17px; height: 19px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--pip); }
+.pip.now { background: var(--ink); }
+.pip.ok { background: var(--good); }
+.pip.no { background: var(--honey); }
+.stage { position: relative; background: var(--surface); border: 3px solid var(--outline); border-radius: 28px; box-shadow: 0 8px 0 var(--outline); padding: 24px 22px 28px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.hear { background: none; border: 0; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--display); font-weight: 600; font-size: 1.1875rem; border-radius: 16px; }
+.hear svg { width: 104px; height: 127px; overflow: visible; }
+.hear-shadow { fill: var(--outline); stroke: var(--outline); stroke-width: 4; stroke-linejoin: round; }
+.hear-hex { fill: var(--honey); stroke: var(--outline); stroke-width: 4; stroke-linejoin: round; }
+.hear-top { transition: transform .06s; }
+.hear:hover .hear-top { transform: translateY(-2px); }
+.hear:active .hear-top { transform: translateY(6px); }
+.hear-ico path { fill: var(--on-honey); stroke: var(--on-honey); }
+.hear-ico .wave { fill: none; }
+.aux { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.talk { display: flex; align-items: center; gap: 18px; width: 100%; max-width: 34rem; }
+#play-bee { width: 88px; flex: none; }
+.bubble { position: relative; flex: 1; min-width: 0; background: var(--honey-wash); border: 3px solid var(--outline); border-radius: 20px; padding: 12px 16px; }
+.bubble::before, .bubble::after { content: ""; position: absolute; top: 50%; border-style: solid; border-color: transparent; }
+.bubble::before { left: -17px; margin-top: -10px; border-width: 10px 14px 10px 0; border-right-color: var(--outline); }
+.bubble::after { left: -11px; margin-top: -7px; border-width: 7px 10px 7px 0; border-right-color: var(--honey-wash); }
+.sentence { font-size: var(--t-l); font-weight: 700; line-height: 1.3; text-wrap: balance; }
+.blank { display: inline-block; width: 4.2em; border-bottom: 4px solid var(--ink); border-radius: 2px; transform: translateY(-.1em); margin-inline: .1em; }
+.answer { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; max-width: 32rem; }
+.answer input { flex: 1 1 12rem; min-width: 0; font-family: var(--letters); font-weight: 700; font-size: 1.5rem; letter-spacing: .08em; text-align: center; background: var(--surface); border: 3px solid var(--outline); border-radius: 16px; padding: 9px 12px; box-shadow: inset 0 4px 0 var(--line); }
+.answer input:disabled, .answer input[readonly] { opacity: .6; }
+.feedback { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; text-align: center; min-height: 1.5rem; }
+.fb-title { font-family: var(--display); font-weight: 700; font-size: var(--t-l); }
+.fb-title.good { color: var(--good); }
+.fb-title.miss { color: var(--miss); }
+.tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; row-gap: 10px; }
+.tile { font-family: var(--letters); font-weight: 700; font-size: clamp(1.05rem, 4.6vw, 1.6rem); width: clamp(1.15rem, 5vw, 2.1rem); text-align: center; line-height: 1.55; background: var(--surface); border: 2px solid var(--outline); border-radius: 8px; box-shadow: 0 3px 0 var(--outline); }
+.tile.ok { background: var(--good-wash); }
+.tile.bad { background: var(--miss-wash); color: var(--miss); border-color: var(--miss); box-shadow: 0 3px 0 var(--miss); }
+.tile.gap { color: var(--miss); background: none; border-color: transparent; box-shadow: none; width: clamp(.6rem, 2.6vw, .9rem); }
+.tile.mark { background: var(--honey-wash); border-color: var(--honey-deep); box-shadow: 0 3px 0 var(--honey-deep); }
+.tile.win { background: var(--honey); color: var(--on-honey); animation: pop .4s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pop { from { transform: translateY(8px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.tip { max-width: 32rem; font-size: var(--t-s); color: var(--ink-soft); text-align: left; border-left: 4px solid var(--honey); padding-left: 12px; }
+.tip b { color: var(--ink); }
+.note { font-size: var(--t-s); color: var(--ink-soft); font-weight: 700; }
+.burst { position: absolute; left: 50%; top: 96px; width: 0; height: 0; pointer-events: none; }
+.burst i { position: absolute; width: 14px; height: 16px; margin: -8px 0 0 -7px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--honey); animation: fly .8s ease-out both; }
+.burst i:nth-child(3n) { background: var(--pop); }
+.burst i:nth-child(3n+1) { background: var(--good); }
+@keyframes fly { from { transform: translate(0, 0) scale(.4); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(var(--rot)); opacity: 0; } }
+.bob { animation: bob 2.6s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.hop { animation: hop .42s ease-out 2; }
+@keyframes hop { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-16px) rotate(-8deg); } }
+.shake { animation: shake .35s ease-in-out 1; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .tile.win, .bob, .hop, .shake { animation: none; } .burst { display: none; } }
+
+/* end-of-round flight */
+#flight { position: fixed; inset: 0; z-index: 50; pointer-events: none; overflow: hidden; }
+.flyer { position: absolute; left: 0; top: 0; will-change: transform; }
+.fly .wing-l, .fly .wing-r { transform-box: view-box; }
+.fly .wing-l { transform-origin: 40px 60px; animation: flap-l .09s linear infinite alternate; }
+.fly .wing-r { transform-origin: 60px 60px; animation: flap-r .09s linear infinite alternate; }
+@keyframes flap-l { from { transform: rotate(16deg); } to { transform: rotate(-24deg); } }
+@keyframes flap-r { from { transform: rotate(-16deg); } to { transform: rotate(24deg); } }
+.drop { position: absolute; width: 12px; height: 14px; margin: -7px 0 0 -6px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--honey); animation: drop .9s ease-in both; }
+.drop.alt { background: var(--pop); }
+@keyframes drop { from { transform: scale(1); opacity: .95; } to { transform: translateY(46px) scale(.3) rotate(140deg); opacity: 0; } }
+#done-bee { width: 88px; flex: none; }
+#test-bee { display: block; width: 56px; flex: none; }
+
+/* round done */
+.score { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 2.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: var(--t-s); color: var(--ink-soft); font-weight: 700; }
+.unlock { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; background: var(--surface); border: 3px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--pop); padding: 14px 18px; }
+.unlock .bee { width: 84px; }
+.unlock .who-new { flex: 1 1 10rem; min-width: 0; }
+.unlock .tag { color: var(--pop); }
+.sheet { background: var(--surface); border: 3px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--outline); padding: 18px; }
+.wordlist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 6px 20px; }
+.wordlist li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 2px dashed var(--line); padding-block: 6px; }
+.wordlist .w { font-family: var(--letters); font-weight: 700; overflow-wrap: anywhere; }
+.chip { font-size: var(--t-xs); font-weight: 800; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.chip.ok { background: var(--good-wash); color: var(--good); }
+.chip.no { background: var(--honey-wash); color: var(--honey-deep); }
+.chip.bad { background: var(--miss-wash); color: var(--miss); }
+
+/* bee picker */
+.bees { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 18px 16px; }
+.beecard { position: relative; background: var(--surface); border: 3px solid var(--outline); border-radius: 22px; box-shadow: 0 6px 0 var(--outline); padding: 14px 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; min-width: 0; }
+button.beecard { cursor: pointer; transition: transform .1s; }
+button.beecard:hover { transform: translateY(-3px); }
+.beecard .bee { width: 88px; margin-bottom: 4px; }
+.beecard b { font-family: var(--display); font-weight: 600; font-size: 1.1875rem; }
+.beecard small { font-size: var(--t-xs); font-weight: 700; color: var(--ink-soft); line-height: 1.3; }
+.beecard[aria-pressed="true"] { background: var(--honey); color: var(--on-honey); }
+.beecard[aria-pressed="true"] small { color: var(--on-honey); }
+.beecard.locked { background: transparent; border-style: dashed; box-shadow: none; }
+.beecard.locked .bee { filter: grayscale(1); opacity: .45; }
+.beecard.can { border-style: solid; border-color: var(--honey-deep); background: var(--honey-wash); }
+.beecard.can .bee { filter: none; opacity: 1; }
+.btn.small { font-size: var(--t-s); padding: 6px 12px; border-radius: 12px; box-shadow: 0 4px 0 var(--outline); margin-top: 6px; }
+.bank { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; background: var(--surface); border: 3px solid var(--outline); border-radius: 18px; box-shadow: 0 5px 0 var(--outline); padding: 8px 16px; align-self: flex-start; font-weight: 700; }
+.hd { width: 20px; height: 26px; flex: none; align-self: center; }
+.bank b { font-family: var(--display); font-weight: 700; font-size: var(--t-xl); line-height: 1; font-variant-numeric: tabular-nums; }
+.bank .link { margin-left: 8px; }
+#pick-bee { width: 88px; flex: none; }
+.beecard .bar { width: 80%; margin-top: 4px; }
+.lock { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; color: var(--ink-soft); }
+
+/* honey shelf */
+.badge { display: block; width: 100%; height: auto; }
+.badge text { font-family: var(--display); font-weight: 700; }
+.shelf { display: flex; flex-direction: column; gap: 10px; border-bottom-width: 9px; border-bottom-color: var(--honey-deep); box-shadow: none; }
+.shelf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.shelf-head span { font-size: var(--t-s); font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 18px 8px; margin-top: 6px; }
+.bcard { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-width: 0; }
+.bcard .badge { width: 78px; margin-bottom: 2px; }
+.bcard b { font-family: var(--display); font-weight: 600; font-size: var(--t-m); line-height: 1.15; overflow-wrap: anywhere; }
+.bcard small { font-size: var(--t-xs); font-weight: 700; color: var(--ink-soft); line-height: 1.25; }
+.bcard .bar { width: 76%; height: 9px; margin-top: 3px; }
+.bcard.locked .badge { filter: grayscale(1); opacity: .38; }
+.bcard.locked b { color: var(--ink-soft); }
+.total { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.total .bar { flex: 1 1 10rem; height: 16px; border: 2px solid var(--outline); }
+.total b { font-family: var(--display); font-weight: 700; font-size: var(--t-l); font-variant-numeric: tabular-nums; }
+.newrow { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 8px; }
+.newrow figure { margin: 0; width: 5.5rem; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.newrow .badge { width: 64px; }
+.newrow figcaption { font-family: var(--display); font-weight: 600; font-size: var(--t-s); line-height: 1.15; }
+
+/* toggle */
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--surface); border: 3px solid var(--outline); border-radius: 16px; box-shadow: 0 4px 0 var(--outline); padding: 3px; gap: 3px; align-self: flex-start; }
+.seg button { background: none; border: 0; border-radius: 10px; padding: 5px 16px; cursor: pointer; font-family: var(--display); font-weight: 600; color: var(--ink-soft); overflow-wrap: anywhere; }
+.seg button[aria-pressed="true"] { background: var(--honey); color: var(--on-honey); }
+
+/* hive */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--t-s); font-weight: 700; color: var(--ink-soft); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { width: 16px; height: 18px; }
+.combs { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 26px 28px; }
+.comb { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.comb-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.comb-head span { font-size: var(--t-s); font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.comb svg { width: 100%; height: auto; display: block; }
+.hx { fill: var(--honey); stroke: var(--honey-deep); stroke-width: 1.5; cursor: pointer; }
+.hx.s0 { fill-opacity: 0; stroke: var(--line); }
+.hx.s1 { fill-opacity: .22; }
+.hx.s2 { fill-opacity: .55; }
+.hx.s3 { fill-opacity: 1; stroke: var(--outline); stroke-width: 2; }
+.hx.trouble { stroke: var(--miss); stroke-width: 2.5; }
+.hx:focus { outline: none; }
+.hx.on { stroke: var(--ink); stroke-width: 3; }
+.hx:focus-visible { stroke: var(--focus); stroke-width: 3; }
+.hexinfo { font-size: var(--t-s); color: var(--ink-soft); min-height: 1.5em; }
+.hexinfo b { font-family: var(--letters); color: var(--ink); }
+
+/* grown-ups */
+.panel { display: flex; flex-direction: column; gap: 14px; background: var(--surface); border: 3px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--outline); padding: 18px; }
+.prow { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) minmax(0, 12rem); gap: 4px 14px; align-items: center; padding-block: 8px; border-bottom: 2px dashed var(--line); font-size: var(--t-s); }
+.prow .pname { font-weight: 800; }
+.bar { height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 999px; }
+.bar i.lo { background: var(--miss); } .bar i.mid { background: var(--honey); } .bar i.hi { background: var(--good); }
+.prow .num { color: var(--ink-soft); font-variant-numeric: tabular-nums; text-align: right; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .chip { font-family: var(--letters); font-size: var(--t-s); }
+.check { display: flex; gap: 10px; align-items: flex-start; }
+.check input { width: 20px; height: 20px; margin-top: 3px; flex: none; accent-color: var(--honey-deep); }
+.confirm { background: var(--miss-wash); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.confirm .row { align-items: center; }
+textarea.code { font-family: var(--letters); font-size: var(--t-xs); line-height: 1.4; width: 100%; background: var(--surface); color: var(--ink); border: 3px solid var(--outline); border-radius: 12px; padding: 8px 10px; word-break: break-all; resize: vertical; }
+.msg-ok { color: var(--good); font-weight: 700; }
+.msg-no { color: var(--miss); font-weight: 700; }
+ol.plain { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; max-width: 38rem; }
+
+@media (max-width: 34rem) {
+  .players { grid-template-columns: minmax(0, 1fr); }
+  .prow { grid-template-columns: minmax(0, 1fr); }
+  .prow .num { text-align: left; }
+  .stage { padding: 20px 12px 24px; }
+  .answer input { flex-basis: 100%; }
+  .answer .btn { flex: 1 1 auto; }
+  .talk { gap: 14px; }
+  #play-bee { width: 64px; }
+  .sentence { font-size: 1.1875rem; }
+  .title-row .bee, #done-bee, #pick-bee { width: 68px; }
+  .nav button { padding: 3px 9px; font-size: var(--t-s); }
+  .badges { grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); }
+  .bcard .badge { width: 68px; }
+}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span id="brand-bee"></span>
+      <span>Honeycomb Spelling</span>
+    </div>
+    <nav class="nav" aria-label="Sections">
+      <button type="button" data-go="home" aria-current="page">Spell</button>
+      <button type="button" data-go="hive">Hive</button>
+      <button type="button" data-go="shelf">Honey Shelf</button>
+      <button type="button" data-go="grown">Grown-ups</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="view" id="v-home"></section>
+
+    <section class="view" id="v-play" hidden>
+      <div class="playbar">
+        <span class="who" id="play-who"></span>
+        <div class="pips" id="pips" aria-hidden="true"></div>
+        <button type="button" class="link" id="quit">End round</button>
+      </div>
+      <div class="stage">
+        <button type="button" class="hear" id="hear">
+          <svg viewBox="0 0 104 127" aria-hidden="true">
+            <polygon class="hear-shadow" points="52,10 101,38 101,96 52,124 3,96 3,38"/>
+            <g class="hear-top">
+            <polygon class="hear-hex" points="52,3 101,31 101,89 52,117 3,89 3,31"/>
+            <g class="hear-ico" id="ico-speak" transform="translate(31,42) scale(1.55)">
+              <path d="M2 9v6h4l5 4V5L6 9H2z"/>
+              <path class="wave" d="M14.5 8.5a5 5 0 0 1 0 7M17.5 5.5a9 9 0 0 1 0 13" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <g class="hear-ico" id="ico-eye" transform="translate(30,42) scale(1.8)" hidden>
+              <path class="wave" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/>
+            </g>
+            </g>
+          </svg>
+          <span id="hear-label">Hear the word</span>
+        </button>
+        <div class="aux" id="aux">
+          <button type="button" class="link" id="hear-sent">Hear the sentence</button>
+          <button type="button" class="link" id="hear-slow">Say it slower</button>
+          <button type="button" class="link" id="peek">I can't hear it</button>
+        </div>
+        <div class="talk"><div id="play-bee"></div><p class="sentence bubble" id="sentence"></p></div>
+        <div class="tiles" id="flash" hidden></div>
+        <form class="answer" id="answer-form" autocomplete="off">
+          <label class="sr" for="answer">Type the word</label>
+          <input id="answer" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="type here">
+          <button type="submit" class="btn" id="check">Check</button>
+        </form>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <div class="burst" id="burst" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-done" hidden></section>
+    <section class="view" id="v-bees" hidden></section>
+    <section class="view" id="v-hive" hidden></section>
+    <section class="view" id="v-shelf" hidden></section>
+    <section class="view" id="v-grown" hidden></section>
+  </main>
+</div>
+
+<div id="flight" hidden aria-hidden="true"></div>
+
+<script>
+/* ---------- word list: "word|grade|sentence|optional hint" ---------- */
+const PATTERNS = [
+{ id:'dbl', name:'Double the last letter', tip:'Short vowel and one consonant at the end? Double it before -ing, -ed or -er (hop, hopping). In longer words, double only when the last syllable is the loud one (beGIN, beginning).', words:[
+'hopping|4|The rabbit went hopping across the yard.',
+'stopped|4|The bus stopped at the corner.',
+'swimming|4|We went swimming in the lake.',
+'running|4|She was running to catch the ball.',
+'planned|4|We planned a surprise party for Dad.',
+'dropped|4|He dropped his pencil under the desk.',
+'grabbed|4|She grabbed her coat and ran outside.',
+'bigger|4|My dog is bigger than your dog.',
+'shipping|4|The store offers free shipping on books.',
+'beginning|5|Read the story from the beginning.',
+'forgotten|5|I had forgotten my lunch at home.',
+'admitted|5|He admitted that he broke the window.',
+'permitted|5|Dogs are not permitted in the museum.',
+'controlled|5|The pilot controlled the plane with care.',
+'equipped|5|The lab is equipped with new microscopes.',
+'occurred|6|The storm occurred late at night.|Two c\'s and two r\'s.',
+'referred|6|The teacher referred to the map on the wall.',
+'committed|6|She is committed to practicing every day.|Two m\'s and two t\'s.',
+'preferred|6|He preferred the window seat on the train.',
+'regretted|6|She regretted leaving her umbrella at home.' ]},
+{ id:'drope', name:'Drop the silent e', tip:'Drop the silent e before an ending that starts with a vowel (hope, hoping). Keep it before an ending that starts with a consonant (hope, hopeful).', words:[
+'hoping|4|I am hoping for snow tomorrow.',
+'making|4|Dad is making pancakes for breakfast.',
+'writing|4|She is writing a letter to her cousin.',
+'shining|4|The sun is shining on the water.',
+'using|4|He is using a ruler to draw the line.',
+'caring|4|The nurse was kind and caring.',
+'scary|4|That movie was too scary for me.',
+'famous|4|The famous singer waved to the crowd.',
+'amazing|4|The view from the mountain was amazing.',
+'dining|5|We ate in the dining room.|dine + ing, one n.',
+'arriving|5|The train is arriving at noon.',
+'nervous|5|I felt nervous before the spelling test.',
+'lovable|5|The puppy is clumsy but lovable.',
+'storage|5|We keep the bikes in the storage shed.',
+'creative|5|Her creative idea won the art contest.',
+'hopeful|5|We are hopeful that the rain will stop.|The ending starts with a consonant, so the e stays.',
+'arguing|6|The brothers were arguing about the rules.',
+'believable|6|The story was strange but believable.',
+'advertising|6|The company spent a lot on advertising.',
+'truly|6|I am truly sorry for being late.|A rule-breaker: true drops its e here.' ]},
+{ id:'ytoi', name:'Change y to i', tip:'A consonant and then y at the end? Change the y to i before adding an ending (carry, carried). Keep the y before -ing (carrying).', words:[
+'carried|4|She carried the box up the stairs.',
+'cities|4|We visited three cities on our trip.',
+'families|4|Many families came to the picnic.',
+'easier|4|This puzzle is easier than the last one.',
+'hurried|4|We hurried to catch the bus.',
+'worried|4|Mom was worried when we were late.',
+'studies|4|He studies for an hour every night.',
+'replied|4|She replied to my message right away.',
+'happiness|5|The gift filled her with happiness.',
+'beautiful|5|The sunset was beautiful tonight.|beauty + ful: the y turns into i.',
+'countries|5|Many countries sent teams to the games.',
+'earliest|5|This is the earliest I have ever woken up.',
+'heaviest|5|He lifted the heaviest box.',
+'denied|5|He denied eating the last cookie.',
+'supplied|5|The school supplied pencils and paper.',
+'carrying|5|She is carrying a tray of glasses.|The y stays before -ing.',
+'business|6|My aunt owns a small business.|busy + ness: the y turns into i.',
+'loneliness|6|The new student felt some loneliness at first.',
+'plentiful|6|Apples are plentiful in the fall.',
+'merciful|6|The merciful king let the prisoner go.' ]},
+{ id:'shun', name:'-tion, -sion, -cian', tip:'The "shun" sound is usually spelled -tion. Use -sion after an s, or when it sounds like "zhun" (decision). Use -cian for a person (music, musician).', words:[
+'action|4|The movie was full of action.',
+'nation|4|The whole nation watched the game.',
+'question|4|Raise your hand to ask a question.',
+'vacation|4|We are going on vacation in July.',
+'direction|4|The wind changed direction.',
+'collection|4|He has a large collection of rocks.',
+'attention|5|Please pay attention to the directions.',
+'invention|5|The telephone was an important invention.',
+'education|5|A good education opens many doors.',
+'decision|5|Choosing a puppy was a hard decision.',
+'division|5|We are learning long division in math.',
+'television|5|We watched the game on television.',
+'confusion|5|There was confusion about the meeting time.',
+'explosion|5|The explosion could be heard for miles.',
+'magician|5|The magician pulled a coin from my ear.|magic + ian: a person.',
+'musician|5|The musician tuned her guitar.|music + ian: a person.',
+'discussion|6|We had a class discussion about the book.|discuss + ion keeps both s\'s.',
+'permission|6|You need permission to leave early.',
+'expression|6|He had a puzzled expression on his face.|express + ion keeps both s\'s.',
+'electrician|6|The electrician fixed the broken light.|electric + ian: a person.' ]},
+{ id:'able', name:'-able or -ible', tip:'If you can see a whole word inside, it is usually -able (comfort, comfortable). If the first part is not a word on its own, it is often -ible (poss, possible).', words:[
+'possible|4|Is it possible to finish by noon?',
+'terrible|4|The storm made a terrible noise.',
+'horrible|4|The medicine had a horrible taste.',
+'enjoyable|4|The picnic was very enjoyable.',
+'comfortable|4|This chair is very comfortable.|comfort + able.',
+'valuable|5|The old coin is very valuable.',
+'available|5|Tickets are available at the front desk.',
+'reasonable|5|The price of the bike was reasonable.',
+'dependable|5|A dependable friend keeps promises.',
+'remarkable|5|She made a remarkable recovery.',
+'acceptable|5|A late paper is not acceptable.',
+'visible|5|The moon was visible through the clouds.',
+'sensible|5|Wearing a helmet is a sensible choice.',
+'invisible|5|The ink was invisible until we heated the paper.',
+'flexible|5|A gymnast has to be very flexible.',
+'incredible|6|The acrobat did an incredible flip.',
+'responsible|6|She is responsible for feeding the cat.',
+'edible|6|Not every mushroom in the woods is edible.',
+'noticeable|6|There was a noticeable change in the weather.|The e stays so the c keeps its soft sound.',
+'changeable|6|The weather in spring is changeable.|The e stays so the g keeps its soft sound.' ]},
+{ id:'prefix', name:'Prefixes', tip:'Add a prefix without changing the base word. If the prefix ends with the same letter the base word starts with, you get a double letter (mis + spell = misspell).', words:[
+'rewrite|4|Please rewrite the sentence neatly.',
+'preview|4|We saw a preview of the new movie.',
+'disagree|4|My sister and I disagree about the rules.',
+'unusual|4|It is unusual to see snow in May.',
+'disappear|4|The magician made the coin disappear.|dis + appear: one s, two p\'s.',
+'nonfiction|4|This nonfiction book is about volcanoes.',
+'impossible|5|Nothing is impossible if you keep trying.',
+'misspell|5|It is easy to misspell a long word.|mis + spell: two s\'s.',
+'submarine|5|The submarine dove deep under the sea.',
+'unnatural|5|The bright green drink looked unnatural.|un + natural: two n\'s.',
+'disappoint|5|I do not want to disappoint my coach.|dis + appoint: one s, two p\'s.',
+'illegal|5|It is illegal to park in front of a hydrant.|il + legal: two l\'s.',
+'immature|5|The green fruit is still immature.|im + mature: two m\'s.',
+'uncomfortable|5|The itchy sweater was uncomfortable.',
+'misunderstand|5|Speak clearly so nobody will misunderstand you.',
+'irregular|6|The rock had an irregular shape.|ir + regular: two r\'s.',
+'unnecessary|6|Bringing two umbrellas was unnecessary.|un + necessary: two n\'s.',
+'dissatisfied|6|The customer was dissatisfied with the meal.|dis + satisfied: two s\'s.',
+'overreact|6|Try not to overreact to a small mistake.|over + react: two r\'s.',
+'international|6|The airport has many international flights.' ]},
+{ id:'ieei', name:'ie or ei', tip:'i before e, except after c, or when it sounds like "ay" as in neighbor and weigh. A few words break the rule, like weird and seize.', words:[
+'friend|4|My best friend lives next door.|A friend to the end.',
+'piece|4|May I have a piece of pie?|A piece of pie.',
+'field|4|The cows are grazing in the field.',
+'believe|4|I believe you can do it.',
+'weigh|4|How much does the puppy weigh?',
+'eight|4|The spider has eight legs.',
+'chief|4|The fire chief spoke to our class.',
+'thief|5|The thief was caught by the police.',
+'niece|5|My niece is learning to walk.',
+'brief|5|The mayor gave a brief speech.',
+'shield|5|The knight held up his shield.',
+'neighbor|5|Our neighbor has a friendly dog.',
+'weight|5|The weight of the backpack hurt my shoulders.',
+'height|5|The nurse measured my height.',
+'ceiling|5|A spider crawled across the ceiling.|After c, it is ei.',
+'receive|5|Did you receive my letter?|After c, it is ei.',
+'weird|6|We heard a weird noise in the attic.|A rule-breaker: weird is weird.',
+'achieve|6|You can achieve your goal with practice.',
+'foreign|6|She speaks two foreign languages.',
+'receipt|6|Keep the receipt in case you return the shoes.|After c, it is ei. The p is silent.',
+'seize|6|The guards tried to seize the stolen gold.|A rule-breaker.',
+'deceive|6|The trick was meant to deceive the audience.|After c, it is ei.' ]},
+{ id:'silent', name:'Silent letters', tip:'Some letters are written but not said. Say the word the silly way in your head (k-night, lis-ten), or think of a related word where you can hear the letter (sign, signal).', words:[
+'knight|4|The knight rode a white horse.',
+'wrist|4|She wears a watch on her wrist.',
+'climb|4|We will climb the hill after lunch.',
+'thumb|4|I hit my thumb with the hammer.',
+'listen|4|Please listen to the directions.',
+'answer|4|Do you know the answer to the riddle?',
+'island|4|The boat sailed to a small island.|An island is land.',
+'castle|4|The king lived in a stone castle.',
+'wrinkle|5|Iron the shirt to remove the wrinkle.',
+'whistle|5|The coach blew her whistle.',
+'honest|5|An honest person tells the truth.',
+'sword|5|The pirate waved his sword.',
+'doubt|5|I doubt that it will rain today.',
+'autumn|5|The leaves turn red in autumn.',
+'design|5|She drew a design for the poster.|You can hear the g in signal.',
+'muscle|5|He pulled a muscle in his leg.|You can hear the c in muscular.',
+'knowledge|6|Reading adds to your knowledge.|know + ledge.',
+'column|6|Add the numbers in the first column.|You can hear the n in columnist.',
+'rhyme|6|The words cat and hat rhyme.',
+'gnaw|6|Beavers gnaw on tree trunks.' ]},
+{ id:'roots', name:'Greek and Latin roots', tip:'Long words are built from parts that keep their spelling. Find the part you know: tele (far), graph (write), port (carry), struct (build), spect (look), dict (say), rupt (break), aud (hear).', words:[
+'telephone|4|The telephone rang during dinner.|tele (far) + phone (sound).',
+'transport|4|Trucks transport food to the stores.|trans (across) + port (carry).',
+'inspect|4|The chef will inspect the kitchen.|in + spect (look).',
+'predict|4|Can you predict who will win?|pre (before) + dict (say).',
+'erupt|4|The volcano may erupt soon.|rupt (break).',
+'photograph|5|She took a photograph of the bridge.|photo (light) + graph (write).',
+'autograph|5|The player signed an autograph for me.|auto (self) + graph (write).',
+'telescope|5|We saw Saturn through the telescope.|tele (far) + scope (look).',
+'microscope|5|The cell looked huge under the microscope.|micro (small) + scope (look).',
+'portable|5|We took a portable stove on the camping trip.|port (carry) + able.',
+'construct|5|The crew will construct a new bridge.|con (together) + struct (build).',
+'structure|5|The nest is a strong structure.|struct (build).',
+'interrupt|5|Please do not interrupt the speaker.|inter (between) + rupt (break): two r\'s.',
+'dictionary|5|Look up the word in the dictionary.|dict (say).',
+'audience|5|The audience clapped at the end.|aud (hear).',
+'spectator|6|Every spectator stood and cheered.|spect (look).',
+'biography|6|I read a biography of Harriet Tubman.|bio (life) + graph (write).',
+'geography|6|In geography we study maps and landforms.|geo (earth) + graph (write).',
+'instruction|6|Follow each instruction on the page.|in + struct (build) + ion.',
+'audible|6|Her whisper was barely audible.|aud (hear) + ible.' ]},
+{ id:'homo', name:'Sound-alike words', tip:'These words sound the same, so the sentence tells you which one to write. Ask what the word is doing in the sentence.', words:[
+'their|4|The players put on their helmets.|their = belongs to them.',
+'there|4|Put the box over there.|there = a place. It has "here" inside it.',
+'they\'re|4|I think they\'re coming to the party.|they\'re = they are.',
+'your|4|Is this your backpack?|your = belongs to you.',
+'you\'re|4|I hope you\'re feeling better.|you\'re = you are.',
+'its|4|The dog wagged its tail.|its = belongs to it. No apostrophe.',
+'it\'s|4|I think it\'s going to rain.|it\'s = it is.',
+'threw|4|She threw the ball to first base.|threw = the past of throw.',
+'through|4|The train went through the tunnel.',
+'peace|4|The two countries finally made peace.',
+'weather|5|The weather is warm and sunny today.',
+'whether|5|I cannot decide whether to walk or ride.|whether = if.',
+'whose|5|Do you know whose jacket this is?|whose = belonging to whom.',
+'who\'s|5|Do you know who\'s coming to dinner?|who\'s = who is.',
+'allowed|5|We are allowed to stay up late on Friday.',
+'aloud|5|The teacher read the story aloud.|a + loud.',
+'accept|6|Please accept this gift.|accept = take.',
+'except|6|Everyone came except Maria.|except = leaving out. ex means out.',
+'affect|6|The rain will affect our plans.|affect is the action.',
+'effect|6|The medicine had a good effect.|effect is the result.',
+'principal|6|The principal greeted us at the school door.|The principal is your pal.',
+'principle|6|Honesty is an important principle.|principle = rule. Both end in -le.' ]},
+{ id:'tricky', name:'Tricky everyday words', tip:'These words do not follow a neat rule. Break them into chunks and say every chunk the way it is spelled.', words:[
+'because|4|I stayed home because I was sick.|Big Elephants Can Always Understand Small Elephants.',
+'different|4|The twins have different hobbies.|dif-fer-ent.',
+'favorite|4|Blue is my favorite color.|fa-vor-ite.',
+'tomorrow|4|We have a field trip tomorrow.|One m, two r\'s.',
+'surprise|4|The party was a big surprise.|sur-prise.',
+'library|4|I borrowed two books from the library.|li-brar-y.',
+'probably|4|It will probably rain tonight.|prob-ab-ly.',
+'February|5|Her birthday is in February.|Feb-ru-ar-y.',
+'Wednesday|5|We have music class on Wednesday.|Wed-nes-day.',
+'calendar|5|Mark the date on the calendar.|It ends in -dar.',
+'separate|5|Please separate the red blocks from the blue ones.|There is "a rat" in separate.',
+'restaurant|5|We ate at a new restaurant downtown.|rest-au-rant.',
+'government|5|The government passed a new law.|govern + ment.',
+'environment|5|We should protect the environment.|en-vi-ron-ment.',
+'definitely|6|I will definitely be there on time.|The word "finite" is inside.',
+'necessary|6|It is necessary to wear a seat belt.|One collar, two sleeves: one c, two s\'s.',
+'embarrass|6|Please do not embarrass me in front of my friends.|Two r\'s and two s\'s.',
+'rhythm|6|The drummer kept a steady rhythm.|Rhythm Helps Your Two Hips Move.',
+'occasion|6|A wedding is a special occasion.|Two c\'s, one s.',
+'recommend|6|I recommend this book to everyone.|re + commend: one c, two m\'s.' ]},
+{ id:'antent', name:'-ant or -ent, -ance or -ence', tip:'The ending sounds the same either way, so learn the word family. -ant goes with -ance (important, importance). -ent goes with -ence (different, difference).', words:[
+'important|4|It is important to drink water.',
+'distance|4|We ran a long distance.',
+'sentence|4|Write a sentence using the new word.',
+'science|4|We did an experiment in science class.',
+'silent|4|The room was silent during the test.',
+'present|4|She wrapped the present in blue paper.',
+'instant|4|The lights went out in an instant.',
+'excellent|5|You did an excellent job on your report.',
+'difference|5|Can you spot the difference between the pictures?',
+'balance|5|She lost her balance on the ice.',
+'entrance|5|Meet me at the front entrance.',
+'pleasant|5|We had a pleasant walk in the park.',
+'patient|5|Be patient while you wait in line.',
+'confident|5|He felt confident before the race.',
+'absence|5|Her absence from class was noticed.',
+'experience|6|Camping was a new experience for me.',
+'performance|6|The band gave a great performance.',
+'appearance|6|The actor made a brief appearance.',
+'independent|6|Cats are very independent animals.',
+'permanent|6|Use a permanent marker on the label.' ]}
+];
+
+const WORDS = [];
+const WORD_BY_ID = {};
+const PAT_BY_ID = {};
+PATTERNS.forEach(function (p) {
+  PAT_BY_ID[p.id] = p;
+  p.list = p.words.map(function (s) {
+    const parts = s.split('|');
+    const w = { id: parts[0].toLowerCase().replace(/'/g, '_'), w: parts[0], g: +parts[1], s: parts[2], h: parts[3] || '', pat: p.id };
+    WORDS.push(w); WORD_BY_ID[w.id] = w;
+    return w;
+  });
+});
+
+/* ---------- bee avatars: four are free, the rest are traded for with earned badges ---------- */
+const AVATARS = [
+  { id: 'zip', name: 'Zip', bg: '#8ED1FF' },
+  { id: 'dot', name: 'Dot', bg: '#FFC2DC', acc: 'bow' },
+  { id: 'specs', name: 'Specs', bg: '#B5EEC2', acc: 'glasses' },
+  { id: 'posy', name: 'Posy', bg: '#D9C7FF', acc: 'flower' },
+  { id: 'scout', name: 'Scout', bg: '#FFCFA3', acc: 'cap', cost: 2 },
+  { id: 'ace', name: 'Ace', bg: '#FF9F6B', acc: 'shades', cost: 2 },
+  { id: 'beats', name: 'Beats', bg: '#BDEFEA', acc: 'phones', cost: 3 },
+  { id: 'prof', name: 'Professor', bg: '#CFE0FF', acc: 'gradcap', cost: 3 },
+  { id: 'shadow', name: 'Shadow', bg: '#A9AFE0', acc: 'ninja', cost: 4 },
+  { id: 'captain', name: 'Captain', bg: '#9BE0D5', acc: 'pirate', cost: 4 },
+  { id: 'wizbee', name: 'Wizbee', bg: '#CDB4FF', acc: 'wizard', cost: 5 },
+  { id: 'queenie', name: 'Queenie', bg: '#FFB3C7', acc: 'crown', cost: 5 },
+  { id: 'dusty', name: 'Dusty', bg: '#F7D9A8', acc: 'cowboy', cost: 5 },
+  { id: 'fizz', name: 'Fizz', bg: '#D6F5A8', acc: 'scientist', cost: 5 },
+  { id: 'riff', name: 'Riff', bg: '#4B5878', acc: 'rock', cost: 5 },
+  { id: 'vex', name: 'Vex', bg: '#9D7BE0', acc: 'villain', cost: 5 },
+  { id: 'cosmo', name: 'Cosmo', bg: '#3A3F8F', acc: 'space', cost: 6 },
+  { id: 'goldie', name: 'Goldie', bg: '#FFF4BF', acc: 'gold', body: '#FFD21F', stripe: '#C98A00', cost: 8 }
+];
+AVATARS.sort(function (x, y) { return (x.cost || 0) - (y.cost || 0); });
+const AV_BY_ID = {};
+AVATARS.forEach(function (a) { AV_BY_ID[a.id] = a; });
+const DEF_AV = { a: 'zip', b: 'dot', t: 'specs' };
+const BK = '#2B2140';
+let beeN = 0;
+function star5(cx, cy, R, r, fill) {
+  let pts = '';
+  for (let k = 0; k < 10; k++) { const a = Math.PI * k / 5 - Math.PI / 2, rad = k % 2 ? r : R; pts += (cx + rad * Math.cos(a)).toFixed(1) + ',' + (cy + rad * Math.sin(a)).toFixed(1) + ' '; }
+  return '<polygon points="' + pts.trim() + '" fill="' + fill + '" stroke="' + BK + '" stroke-width="1.6" stroke-linejoin="round"/>';
+}
+function star4(cx, cy, r, fill) {
+  const q = r * 0.28;
+  return '<path d="M' + cx + ' ' + (cy - r) + ' L' + (cx + q) + ' ' + (cy - q) + ' L' + (cx + r) + ' ' + cy + ' L' + (cx + q) + ' ' + (cy + q) + ' L' + cx + ' ' + (cy + r) + ' L' + (cx - q) + ' ' + (cy + q) + ' L' + (cx - r) + ' ' + cy + ' L' + (cx - q) + ' ' + (cy - q) + ' Z" fill="' + fill + '" stroke="' + BK + '" stroke-width="1.2" stroke-linejoin="round"/>';
+}
+/* mood: 'happy', 'cheer' or 'oops' */
+function beeSVG(av, mood, cls) {
+  const n = ++beeN, body = av.body || '#FFD23F', stripe = av.stripe || BK, acc = av.acc || '';
+  const ol = ' stroke="' + BK + '" stroke-linejoin="round" stroke-linecap="round"';
+  const wing = acc === 'gold' ? '#FFFBE0' : '#FFFFFF';
+  let s = '<svg class="bee' + (cls ? ' ' + cls : '') + '" viewBox="0 0 100 100" role="img" aria-label="' + av.name + ' the bee">';
+  s += '<circle cx="50" cy="50" r="47" fill="' + av.bg + '"' + ol + ' stroke-width="3"/>';
+  if (acc === 'space') s += '<circle cx="20" cy="30" r="1.8" fill="#FFFFFF"/><circle cx="83" cy="22" r="1.4" fill="#FFFFFF"/><circle cx="85" cy="68" r="1.8" fill="#FFFFFF"/><circle cx="13" cy="64" r="1.3" fill="#FFFFFF"/>' + star4(84, 44, 4, '#FFE066');
+  if (acc === 'gold') s += star4(16, 28, 6, '#FFFFFF') + star4(85, 34, 5, '#FFFFFF') + star4(83, 79, 4, '#FFFFFF');
+  s += '<g class="wing-l"><ellipse cx="27" cy="55" rx="15" ry="10" transform="rotate(-32 27 55)" fill="' + wing + '"' + ol + ' stroke-width="2.5"/></g>';
+  s += '<g class="wing-r"><ellipse cx="73" cy="55" rx="15" ry="10" transform="rotate(32 73 55)" fill="' + wing + '"' + ol + ' stroke-width="2.5"/></g>';
+  s += '<path d="M46 85 L50 94 L54 85 Z" fill="' + BK + '"' + ol + ' stroke-width="2"/>';
+  s += '<clipPath id="bc' + n + '"><ellipse cx="50" cy="68" rx="21" ry="19"/></clipPath>';
+  s += '<ellipse cx="50" cy="68" rx="21" ry="19" fill="' + body + '"/>';
+  s += '<g clip-path="url(#bc' + n + ')"><path d="M25 63 Q50 71 75 63 L75 70 Q50 78 25 70 Z" fill="' + stripe + '"/><path d="M25 75 Q50 83 75 75 L75 82 Q50 90 25 82 Z" fill="' + stripe + '"/></g>';
+  s += '<ellipse cx="50" cy="68" rx="21" ry="19" fill="none"' + ol + ' stroke-width="3"/>';
+  if (acc === 'scientist') s += '<path d="M29 39 L18 34 L27 30 L17 22 L29 23 L24 11 L36 18 L38 6 L45 16 L50 4 L55 16 L62 6 L64 18 L76 11 L71 23 L83 22 L73 30 L82 34 L71 39 Z" fill="#F4F6FA"' + ol + ' stroke-width="2.4"/>';
+  if (acc === 'villain') s += '<path d="M26 64 L20 33 L37 50 L50 60 L63 50 L80 33 L74 64 Q50 74 26 64 Z" fill="#3D1466"' + ol + ' stroke-width="2.6"/><path d="M30 61 L26.5 43 L38 54 L50 62 L62 54 L73.5 43 L70 61 Q50 68 30 61 Z" fill="#C2185B"/>';
+  if (acc === 'space') s += '<rect x="35" y="55" width="30" height="9" rx="4.5" fill="#EEF2F7"' + ol + ' stroke-width="2.4"/>';
+  else s += '<path d="M43 24 Q40 12 33 11" fill="none"' + ol + ' stroke-width="2.6"/><path d="M57 24 Q60 12 67 11" fill="none"' + ol + ' stroke-width="2.6"/><circle cx="32.5" cy="10.5" r="3.4" fill="' + BK + '"/><circle cx="67.5" cy="10.5" r="3.4" fill="' + BK + '"/>';
+  s += '<circle cx="50" cy="40" r="20" fill="' + (acc === 'ninja' ? '#3D3166' : body) + '"' + ol + ' stroke-width="3"/>';
+  if (acc === 'gold') s += '<ellipse cx="41" cy="28" rx="6" ry="3" transform="rotate(-30 41 28)" fill="#FFFFFF" fill-opacity=".7"/>';
+  if (acc === 'ninja') s += '<path d="M31 36 Q50 30 69 36 L68.5 48 Q50 43.5 31.5 48 Z" fill="' + body + '"' + ol + ' stroke-width="2"/>';
+  if (acc === 'rock') s += star5(57.5, 39.5, 10.5, 5, '#FF3D8B');
+  if (acc === 'villain') s += '<path d="M31 37 Q41 30.5 50 36 Q59 30.5 69 37 Q68.5 46.5 58 46.5 Q52 46.5 50 42 Q48 46.5 42 46.5 Q31.5 46.5 31 37 Z" fill="' + BK + '"' + ol + ' stroke-width="1.6"/>';
+  const eye = function (cx, skip) {
+    if (skip) return '';
+    return mood === 'cheer'
+      ? '<path d="M' + (cx - 4) + ' 42 Q' + cx + ' 35 ' + (cx + 4) + ' 42" fill="none"' + ol + ' stroke-width="2.8"/>'
+      : '<ellipse cx="' + cx + '" cy="40" rx="3.6" ry="5" fill="' + BK + '"/><circle cx="' + (cx + 1.2) + '" cy="38" r="1.4" fill="#FFFFFF"/>';
+  };
+  s += eye(42.5, acc === 'pirate' || acc === 'shades' || acc === 'villain') + eye(57.5, acc === 'shades' || acc === 'villain');
+  if (acc === 'villain') s += mood === 'cheer'
+    ? '<path d="M38.5 43 Q42.5 37.5 46.5 43 M53.5 43 Q57.5 37.5 61.5 43" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>'
+    : '<path d="M37.5 38.5 L47 41.5 Q46.5 45.5 42.5 45.5 Q38 45.5 37.5 38.5 Z M62.5 38.5 L53 41.5 Q53.5 45.5 57.5 45.5 Q62 45.5 62.5 38.5 Z" fill="#FFFFFF"/><circle cx="43.4" cy="43" r="1.5" fill="' + BK + '"/><circle cx="56.6" cy="43" r="1.5" fill="' + BK + '"/>';
+  if (acc !== 'ninja') {
+    s += '<circle cx="35.5" cy="47.5" r="3.6" fill="#FF8FAB" fill-opacity=".8"/><circle cx="64.5" cy="47.5" r="3.6" fill="#FF8FAB" fill-opacity=".8"/>';
+    if (mood === 'cheer') s += '<path d="M44.5 47.5 Q50 57 55.5 47.5 Z" fill="#8A2346"' + ol + ' stroke-width="2"/>';
+    else if (mood === 'oops') s += '<ellipse cx="50" cy="51" rx="2.6" ry="3.2" fill="' + BK + '"/>';
+    else s += '<path d="M45 48.5 Q50 53.5 55 48.5" fill="none"' + ol + ' stroke-width="2.6"/>';
+  }
+  if (acc === 'bow') s += '<path d="M64 23 L54 17 L54 29 Z M64 23 L74 17 L74 29 Z" fill="#FF5C93"' + ol + ' stroke-width="2"/><circle cx="64" cy="23" r="3.2" fill="#FF8DB5"' + ol + ' stroke-width="2"/>';
+  if (acc === 'glasses') s += '<circle cx="42.5" cy="40" r="7" fill="#FFFFFF" fill-opacity=".35"' + ol + ' stroke-width="2.4"/><circle cx="57.5" cy="40" r="7" fill="#FFFFFF" fill-opacity=".35"' + ol + ' stroke-width="2.4"/>';
+  if (acc === 'flower') {
+    [[36, 17.5], [42.2, 22], [39.8, 29.3], [32.2, 29.3], [29.8, 22]].forEach(function (c) { s += '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="4.2" fill="#FFFFFF"' + ol + ' stroke-width="1.6"/>'; });
+    s += '<circle cx="36" cy="24" r="3.6" fill="#FF7BAC"' + ol + ' stroke-width="1.6"/>';
+  }
+  if (acc === 'cap') s += '<path d="M30.5 33 Q32 15.5 50 15.5 Q68 15.5 69.5 33 Q50 27.5 30.5 33 Z" fill="#3A86FF"' + ol + ' stroke-width="2.6"/><path d="M62 30 Q78 29 84 36.5 Q72 37.5 60 33.5 Z" fill="#1F5FD1"' + ol + ' stroke-width="2.4"/><circle cx="50" cy="15.5" r="2.4" fill="#1F5FD1"' + ol + ' stroke-width="1.6"/>';
+  if (acc === 'phones') s += '<path d="M29 40 Q29 16 50 16 Q71 16 71 40" fill="none" stroke="' + BK + '" stroke-width="8" stroke-linecap="round"/><path d="M29 40 Q29 16 50 16 Q71 16 71 40" fill="none" stroke="#FF5C5C" stroke-width="3.6" stroke-linecap="round"/><rect x="22.5" y="33" width="10" height="15" rx="4.5" fill="#FF5C5C"' + ol + ' stroke-width="2.4"/><rect x="67.5" y="33" width="10" height="15" rx="4.5" fill="#FF5C5C"' + ol + ' stroke-width="2.4"/>';
+  if (acc === 'gradcap') s += '<path d="M36 22 L36 29 Q50 34 64 29 L64 22 Z" fill="#3D3166"' + ol + ' stroke-width="2.2"/><path d="M50 9 L78 18.5 L50 28 L22 18.5 Z" fill="#5A4A99"' + ol + ' stroke-width="2.4"/><path d="M50 18.5 L71 21 L71 31" fill="none" stroke="#FFB81C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="71" cy="32" r="2.6" fill="#FFB81C"' + ol + ' stroke-width="1.4"/>';
+  if (acc === 'pirate') s += '<path d="M30.5 34 Q32 16 50 16 Q68 16 69.5 34 Q50 26.5 30.5 34 Z" fill="#E63946"' + ol + ' stroke-width="2.6"/><circle cx="41" cy="23" r="1.8" fill="#FFFFFF"/><circle cx="52" cy="20" r="1.8" fill="#FFFFFF"/><circle cx="61" cy="25" r="1.8" fill="#FFFFFF"/><path d="M69 32 L79 30 L76 36 L81 40 L70 37 Z" fill="#E63946"' + ol + ' stroke-width="2"/><path d="M31.5 33.5 L68 45" fill="none"' + ol + ' stroke-width="2"/><ellipse cx="42.5" cy="40" rx="6" ry="6.6" fill="' + BK + '"/>';
+  if (acc === 'shades') s += '<path d="M33.5 35 L49 35 L48 43 Q46.5 46.5 41.5 46.5 Q35 46.5 34 41 Z M51 35 L66.5 35 L66 41 Q65 46.5 58.5 46.5 Q53.5 46.5 52 43 Z" fill="' + BK + '"' + ol + ' stroke-width="2"/><path d="M37 37.8 L41 37.8 M54.5 37.8 L58.5 37.8" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>';
+  if (acc === 'ninja') s += '<path d="M69 33 L80 27 L78 34 L83 38 L70 38 Z" fill="#E63946"' + ol + ' stroke-width="2"/><path d="M31.5 31 Q50 24.5 68.5 31" fill="none" stroke="#E63946" stroke-width="3.4" stroke-linecap="round"/>';
+  if (acc === 'wizard') s += '<path d="M33 27 Q44 10 57 3 Q58 16 67 27 Z" fill="#7B4DFF"' + ol + ' stroke-width="2.6"/><ellipse cx="50" cy="27.5" rx="24" ry="5.5" fill="#6236E0"' + ol + ' stroke-width="2.6"/>' + star4(51, 15, 4, '#FFE066') + star4(59, 21, 2.4, '#FFE066');
+  if (acc === 'crown') s += '<path d="M37 27 L39 14 L44.5 19.5 L50 9 L55.5 19.5 L61 14 L63 27 Q50 23 37 27 Z" fill="#FFC933"' + ol + ' stroke-width="2.4"/><circle cx="50" cy="20.5" r="2.2" fill="#FF5C93"' + ol + ' stroke-width="1.2"/><circle cx="39" cy="14" r="1.9" fill="#FF5C93"/><circle cx="61" cy="14" r="1.9" fill="#FF5C93"/><circle cx="50" cy="9" r="1.9" fill="#FF5C93"/>';
+  if (acc === 'cowboy') s += '<path d="M37 56.5 Q50 62 63 56.5 L50 70 Z" fill="#E63946"' + ol + ' stroke-width="2.2"/><circle cx="47" cy="61" r="1.2" fill="#FFFFFF"/><circle cx="53" cy="61" r="1.2" fill="#FFFFFF"/><circle cx="50" cy="65" r="1.2" fill="#FFFFFF"/>'
+    + '<path d="M20 25 Q30 32 50 30 Q70 32 80 25 Q72 20.5 64 22 L36 22 Q28 20.5 20 25 Z" fill="#9A5B2E"' + ol + ' stroke-width="2.6"/>'
+    + '<path d="M36 23 Q32.5 5.5 44 8 Q50 12.5 56 8 Q67.5 5.5 64 23 Q50 26.5 36 23 Z" fill="#B97A45"' + ol + ' stroke-width="2.6"/>'
+    + '<path d="M35.6 18.5 Q50 22.5 64.4 18.5 L64 23 Q50 26.5 36 23 Z" fill="#5A3218"' + ol + ' stroke-width="1.8"/>';
+  if (acc === 'scientist') s += '<path d="M30.4 37 L69.6 37" fill="none" stroke="#5A6577" stroke-width="3.4" stroke-linecap="round"/>'
+    + '<circle cx="42.5" cy="40" r="8" fill="#B8F5C8" fill-opacity=".5"' + ol + ' stroke-width="3"/><circle cx="57.5" cy="40" r="8" fill="#B8F5C8" fill-opacity=".5"' + ol + ' stroke-width="3"/>'
+    + '<path d="M38 36.5 L40.5 34.5 M53 36.5 L55.5 34.5" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>';
+  if (acc === 'rock') s += '<path d="M44 24.5 L42.5 12 L46.5 15.5 L46.5 3.5 L50.5 9.5 L53.5 0.5 L54.5 11.5 L58 8 L56 24.5 Q50 21.5 44 24.5 Z" fill="#2D7BFF"' + ol + ' stroke-width="2.6"/>'
+    + '<circle cx="30.5" cy="45" r="2.4" fill="none" stroke="#FFD23F" stroke-width="1.8"/>';
+  if (acc === 'space') s += '<circle cx="50" cy="39" r="26.5" fill="#DDF3FF" fill-opacity=".28" stroke="#EAF6FF" stroke-width="3"/><path d="M31 27 Q36 18 46 15.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-opacity=".85"/><path d="M50 12.5 L50 7" fill="none" stroke="#EAF6FF" stroke-width="2.4" stroke-linecap="round"/><circle cx="50" cy="6" r="3" fill="#FF5C5C" stroke="#EAF6FF" stroke-width="1.6"/>';
+  return s + '</svg>';
+}
+function dropSVG() { return '<svg class="hd" viewBox="0 0 20 26" aria-hidden="true"><path d="M10 2 C10 2 2.5 11 2.5 16.5 a7.5 7.5 0 0 0 15 0 C17.5 11 10 2 10 2 Z" fill="#FFB81C" stroke="' + BK + '" stroke-width="2" stroke-linejoin="round"/><path d="M6.5 16 a3.6 3.6 0 0 0 2.6 4" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"/></svg>'; }
+function lockSVG() { return '<svg class="lock" viewBox="0 0 24 24" role="img" aria-label="Locked"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><rect x="5" y="11" width="14" height="10" rx="3" fill="currentColor"/></svg>'; }
+
+/* ---------- Honey Shelf badges: each is a milestone with its own picture. Once earned, a badge is kept. ---------- */
+const TIER = ['#E8A46B', '#C9D3E0', '#FFC933', '#7ED9A6', '#86BCFF', '#BFA2FF', '#FF8FB8', '#9DEBF0', '#FFD84D'];
+const PAT_META = { dbl: ['Doubling', 'tt'], drope: ['Drop-the-e', '-e'], ytoi: ['Y-to-I', 'y>i'], shun: ['Shun', 'tion'], able: ['Able-Ible', 'able'], prefix: ['Prefix', 'un-'], ieei: ['IE-EI', 'ie'], silent: ['Silent Letter', 'kn'], roots: ['Roots', 'tele'], homo: ['Sound-alike', 'its'], tricky: ['Tricky Word', '?!'], antent: ['Ant-Ent', 'ent'] };
+const BADGE_GROUPS = [
+  { key: 'rounds', icon: 'flight', title: 'Flights', blurb: 'Every round you finish is a flight.', goals: [1, 5, 10, 25, 50, 100],
+    names: ['First Flight', 'Warm Wings', 'Busy Bee', 'Hard Worker', 'Hive Regular', 'Flight Captain'],
+    need: function (n) { return n === 1 ? 'Finish your first round' : 'Finish ' + n + ' rounds'; } },
+  { key: 'best', icon: 'sun', title: 'Days in a row', blurb: 'Come back and spell day after day.', goals: [2, 3, 5, 7, 14, 30],
+    names: ['Back Again', 'Three in a Row', 'High Five', 'Whole Week', 'Two Weeks Strong', 'Month of Honey'],
+    need: function (n) { return 'Spell ' + n + ' days in a row'; } },
+  { key: 'mastered', icon: 'jar', title: 'Honey', blurb: 'A word turns to honey when you spell it right on the first try on two different days.', goals: [1, 5, 10, 25, 50, 100, 150, 200, WORDS.length],
+    names: ['First Drop', 'Sweet Start', 'Honey Spoon', 'Honey Pot', 'Honey Jar', 'Honey Bucket', 'Honey Barrel', 'Honey River', 'Full Hive'],
+    need: function (n) { return n === 1 ? 'Master your first word' : n === WORDS.length ? 'Master every word' : 'Master ' + n + ' words'; } },
+  { key: 'perfect', icon: 'star', title: 'Perfect rounds', blurb: 'Every word in the round right on the first try.', goals: [1, 3, 10, 25],
+    names: ['Spotless', 'Triple Spotless', 'Perfect Ten', 'Flawless Flyer'],
+    need: function (n) { return n === 1 ? 'Get one perfect round' : 'Get ' + n + ' perfect rounds'; } },
+  { key: 'seen', icon: 'flower', title: 'Flowers visited', blurb: 'Every new word you meet is a flower.', goals: [25, 50, 100, 175, WORDS.length],
+    names: ['Curious Bee', 'Flower Finder', 'Meadow Explorer', 'Field Scout', 'Seen It All'],
+    need: function (n) { return n === WORDS.length ? 'Meet every word' : 'Meet ' + n + ' words'; } },
+  { key: 'firstTry', icon: 'target', title: 'First-try answers', blurb: 'Every answer you get right on the first try counts.', goals: [25, 100, 250, 500, 1000],
+    names: ['Sharp Start', 'Sure Speller', 'Steady Stinger', 'Bullseye Bee', 'Spelling Ace'],
+    need: function (n) { return 'Get ' + n + ' answers right on the first try'; } },
+  { key: 'comeback', icon: 'bounce', title: 'Comebacks', blurb: 'Master a word you once missed.', goals: [1, 5, 15, 30],
+    names: ['Bounce Back', 'Try Again Champ', 'Never Give Up', 'Unstoppable'],
+    need: function (n) { return n === 1 ? 'Master a word you once missed' : 'Master ' + n + ' words you once missed'; } },
+  { key: 'patDone', icon: 'comb', title: 'Comb building', blurb: 'Finish every word in a pattern to build a comb.', goals: [1, 3, 6, PATTERNS.length],
+    names: ['Comb Builder', 'Comb Crafter', 'Comb Master', 'Comb Legend'],
+    need: function (n) { return n === 1 ? 'Master every word in one pattern' : n === PATTERNS.length ? 'Master every word in every pattern' : 'Master every word in ' + n + ' patterns'; } }
+];
+const BADGES = [], BADGE_BY_ID = {};
+BADGE_GROUPS.forEach(function (g) {
+  g.items = g.goals.map(function (n, i) {
+    return { id: g.key + '-' + n, name: g.names[i], need: g.need(n), key: g.key, goal: n, icon: g.icon, color: TIER[i === g.goals.length - 1 && i > 2 ? 8 : i], plate: String(n) };
+  });
+});
+BADGE_GROUPS.push({ key: 'pat', title: 'Pattern pros', blurb: 'Master 10 words in one spelling pattern.',
+  items: PATTERNS.map(function (pat, i) {
+    return { id: 'pat-' + pat.id, name: PAT_META[pat.id][0] + ' Pro', need: 'Master 10 words in “' + pat.name + '”', key: 'pat:' + pat.id, goal: 10, icon: 'glyph', glyph: PAT_META[pat.id][1], color: TIER[(i + 3) % 8], plate: '10' };
+  }) });
+BADGE_GROUPS.forEach(function (g) { g.items.forEach(function (b) { BADGES.push(b); BADGE_BY_ID[b.id] = b; }); });
+
+const BADGE_ICON = {
+  flight: function (ol) {
+    return '<path d="M20 55 Q24 31 41 41" fill="none" stroke="' + BK + '" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.5 5.5"/>'
+      + '<ellipse cx="56" cy="28" rx="9" ry="6.5" transform="rotate(-18 56 28)" fill="#FFFFFF"' + ol + ' stroke-width="2.4"/>'
+      + '<ellipse cx="58" cy="42" rx="14" ry="10.5" fill="#FFD23F"' + ol + ' stroke-width="3"/>'
+      + '<path d="M54 33.5 L54 50.5 M61.5 33 L61.5 51" fill="none" stroke="' + BK + '" stroke-width="3.6" stroke-linecap="round"/>'
+      + '<circle cx="67.5" cy="39.5" r="1.9" fill="' + BK + '"/>';
+  },
+  sun: function (ol) {
+    let s = '';
+    for (let k = 0; k < 8; k++) { const a = Math.PI * k / 4; s += '<path d="M' + (50 + 16 * Math.cos(a)).toFixed(1) + ' ' + (42 + 16 * Math.sin(a)).toFixed(1) + ' L' + (50 + 22 * Math.cos(a)).toFixed(1) + ' ' + (42 + 22 * Math.sin(a)).toFixed(1) + '" fill="none" stroke="' + BK + '" stroke-width="3.2" stroke-linecap="round"/>'; }
+    return s + '<circle cx="50" cy="42" r="11.5" fill="#FFD23F"' + ol + ' stroke-width="3"/><circle cx="46" cy="40" r="1.6" fill="' + BK + '"/><circle cx="54" cy="40" r="1.6" fill="' + BK + '"/><path d="M45.5 45 Q50 49 54.5 45" fill="none"' + ol + ' stroke-width="2"/>';
+  },
+  jar: function (ol) {
+    return '<rect x="36" y="31" width="28" height="30" rx="8" fill="#FFF7DC"' + ol + ' stroke-width="3"/>'
+      + '<path d="M38.5 44 Q44 40.5 50 44 Q56 47.5 61.5 44 L61.5 53 Q61.5 58.5 56 58.5 L44 58.5 Q38.5 58.5 38.5 53 Z" fill="#FFB81C"/>'
+      + '<rect x="36" y="31" width="28" height="30" rx="8" fill="none"' + ol + ' stroke-width="3"/>'
+      + '<rect x="38" y="23.5" width="24" height="8.5" rx="3" fill="#C98A00"' + ol + ' stroke-width="2.8"/>';
+  },
+  star: function (ol) {
+    let pts = '';
+    for (let k = 0; k < 10; k++) { const a = Math.PI * k / 5 - Math.PI / 2, r = k % 2 ? 8 : 18.5; pts += (50 + r * Math.cos(a)).toFixed(1) + ',' + (43 + r * Math.sin(a)).toFixed(1) + ' '; }
+    return '<polygon points="' + pts.trim() + '" fill="#FFFDF6"' + ol + ' stroke-width="3"/>';
+  },
+  flower: function (ol) {
+    let s = '';
+    for (let k = 0; k < 5; k++) { const a = Math.PI * 2 * k / 5 - Math.PI / 2; s += '<circle cx="' + (50 + 11 * Math.cos(a)).toFixed(1) + '" cy="' + (42 + 11 * Math.sin(a)).toFixed(1) + '" r="7.6" fill="#FFFDF6"' + ol + ' stroke-width="2.6"/>'; }
+    return s + '<circle cx="50" cy="42" r="6.6" fill="#FFB81C"' + ol + ' stroke-width="2.6"/>';
+  },
+  target: function (ol) {
+    return '<circle cx="50" cy="42" r="18" fill="#FFFDF6"' + ol + ' stroke-width="3"/><circle cx="50" cy="42" r="11.5" fill="#FF7BAC"' + ol + ' stroke-width="2.6"/><circle cx="50" cy="42" r="5" fill="#FFFDF6"' + ol + ' stroke-width="2.4"/>';
+  },
+  bounce: function (ol) {
+    return '<path d="M29 31 L43 55 L62 29" fill="none" stroke="' + BK + '" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 31 L43 55 L62 29" fill="none" stroke="#FFFDF6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
+      + '<path d="M52 26.5 L64.5 25 L66.5 37.5 Z" fill="#FFFDF6"' + ol + ' stroke-width="2.6"/>';
+  },
+  comb: function (ol) {
+    return [[50, 31], [40.5, 47], [59.5, 47]].map(function (c) { return '<polygon points="' + hexPts(c[0], c[1], 10) + '" fill="#FFB81C"' + ol + ' stroke-width="2.6"/>'; }).join('');
+  },
+  glyph: function (ol, b) {
+    const n = b.glyph.length;
+    return '<rect x="' + (n > 3 ? 20 : 26) + '" y="26" width="' + (n > 3 ? 60 : 48) + '" height="32" rx="9" fill="#FFFDF6"' + ol + ' stroke-width="2.8"/>'
+      + '<text x="50" y="' + (n > 3 ? 48.5 : 50) + '" text-anchor="middle" font-size="' + (n > 3 ? 20 : n > 2 ? 23 : 26) + '" fill="' + BK + '">' + esc(b.glyph) + '</text>';
+  }
+};
+function badgeSVG(b) {
+  const ol = ' stroke="' + BK + '" stroke-linejoin="round" stroke-linecap="round"';
+  const pw = 15 + 7.6 * b.plate.length;
+  return '<svg class="badge" viewBox="0 0 100 106" role="img" aria-label="' + esc(b.name) + ' badge">'
+    + '<polygon points="50,10 93,33 93,79 50,102 7,79 7,33" fill="' + BK + '"' + ol + ' stroke-width="3.5"/>'
+    + '<polygon points="50,4 93,27 93,73 50,96 7,73 7,27" fill="' + b.color + '"' + ol + ' stroke-width="3.5"/>'
+    + '<polygon points="50,12.5 86,32 86,68 50,87.5 14,68 14,32" fill="#FFFFFF" fill-opacity=".4"/>'
+    + BADGE_ICON[b.icon](ol, b)
+    + '<rect x="' + (50 - pw / 2).toFixed(1) + '" y="66.5" width="' + pw.toFixed(1) + '" height="17" rx="8.5" fill="#FFFDF6"' + ol + ' stroke-width="2.6"/>'
+    + '<text x="50" y="79.6" text-anchor="middle" font-size="12.5" fill="' + BK + '">' + b.plate + '</text></svg>';
+}
+
+/* ---------- pure logic ---------- */
+const IV = [0, 1, 3, 7, 14, 30];           // days until the next review, by box
+const MASTERED = 4;                         // box 4 and up counts as mastered
+const IDS = ['a', 'b', 't'];                // two spellers and a test account
+
+function dayNum(d) { d = d || new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
+function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+function int(v) { v = Math.floor(Number(v)); return isFinite(v) ? v : 0; }
+function clampInt(v, lo, hi) { return Math.min(hi, Math.max(lo, int(v))); }
+function norm(s) { return String(s || '').replace(/[‘’ʼ`]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase(); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function shuffle(a, rnd) { rnd = rnd || Math.random; a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+/* canonical player shape; also cleans anything read back from storage */
+function normP(p) {
+  p = p && typeof p === 'object' ? p : {};
+  const src = p.words && typeof p.words === 'object' ? p.words : {};
+  const rz = int(p.rz);
+  const words = {};
+  Object.keys(src).sort().forEach(function (k) {
+    if (!own(WORD_BY_ID, k)) return;
+    const e = src[k] || {};
+    if (int(e.t) < rz) return;
+    words[k] = { b: clampInt(e.b, 0, 5), d: Math.max(0, int(e.d)), r: Math.max(0, int(e.r)), w: Math.max(0, int(e.w)), t: Math.max(0, int(e.t)) };
+  });
+  const usrc = p.un && typeof p.un === 'object' ? p.un : {};
+  const un = {};
+  Object.keys(usrc).sort().forEach(function (k) { if (own(AV_BY_ID, k) && AV_BY_ID[k].cost && int(usrc[k]) >= rz && int(usrc[k]) > 0) un[k] = int(usrc[k]); });
+  const zsrc = p.bz && typeof p.bz === 'object' ? p.bz : {};
+  const bz = {};
+  Object.keys(zsrc).sort().forEach(function (k) { if (own(AV_BY_ID, k) && AV_BY_ID[k].cost && int(zsrc[k]) >= rz && int(zsrc[k]) > 0) bz[k] = int(zsrc[k]); });
+  const csrc = p.rc && typeof p.rc === 'object' ? p.rc : {};
+  const rc = {};
+  Object.keys(csrc).sort().slice(0, 16).forEach(function (k) { if (/^[a-z0-9]{1,12}$/.test(k) && int(csrc[k]) > 0) rc[k] = Math.min(100000, int(csrc[k])); });
+  const bsrc = p.bd && typeof p.bd === 'object' ? p.bd : {};
+  const bd = {};
+  Object.keys(bsrc).sort().forEach(function (k) { if (own(BADGE_BY_ID, k) && int(bsrc[k]) >= rz && int(bsrc[k]) > 0) bd[k] = int(bsrc[k]); });
+  return { name: String(p.name || '').slice(0, 20), grade: clampInt(p.grade || 5, 4, 6), av: typeof p.av === 'string' && own(AV_BY_ID, p.av) ? p.av : '', pt: int(p.pt), rz: rz, last: int(p.last), streak: int(p.streak), best: int(p.best), perfect: int(p.perfect), rounds: Math.max(0, int(p.rounds)), rc: rc, un: un, bz: bz, bd: bd, words: words };
+}
+/* combine this device's copy with the saved copy: the later attempt on each word wins */
+function mergePlayer(local, remote) {
+  const a = normP(local), b = normP(remote);
+  /* if only one copy knows about an "erase progress", its counters are the ones that count */
+  const fresh = a.rz === b.rz ? null : (a.rz > b.rz ? a : b);
+  const out = { name: a.name, grade: a.grade, av: a.av, pt: a.pt, rz: Math.max(a.rz, b.rz), last: a.last, streak: a.streak, best: Math.max(a.best, b.best), perfect: Math.max(a.perfect, b.perfect), rounds: Math.max(a.rounds, b.rounds), rc: {}, un: {}, bz: {}, bd: {}, words: {} };
+  if (b.pt > a.pt) { out.name = b.name; out.grade = b.grade; out.av = b.av || a.av; out.pt = b.pt; }
+  if (b.last > a.last) { out.last = b.last; out.streak = b.streak; }
+  else if (b.last === a.last) out.streak = Math.max(a.streak, b.streak);
+  if (fresh) { out.last = fresh.last; out.streak = fresh.streak; out.best = fresh.best; out.perfect = fresh.perfect; out.rounds = fresh.rounds; }
+  [a, b].forEach(function (src) {
+    Object.keys(src.words).forEach(function (k) {
+      const e = src.words[k];
+      if (!out.words[k] || e.t > out.words[k].t) out.words[k] = e;
+    });
+    Object.keys(src.un).forEach(function (k) { out.un[k] = Math.max(out.un[k] || 0, src.un[k]); });
+    Object.keys(src.bd).forEach(function (k) { out.bd[k] = Math.max(out.bd[k] || 0, src.bd[k]); });
+    Object.keys(src.bz).forEach(function (k) { out.bz[k] = Math.max(out.bz[k] || 0, src.bz[k]); });
+    /* each device only ever raises its own round count, so the larger number per device is the true one */
+    if (!fresh || src === fresh) Object.keys(src.rc).forEach(function (k) { out.rc[k] = Math.max(out.rc[k] || 0, src.rc[k]); });
+  });
+  return normP(out);
+}
+/* rounds finished: the count from before per-device counting, plus every device's own count */
+function roundsOf(p) { let n = p.rounds; Object.keys(p.rc).forEach(function (k) { n += p.rc[k]; }); return n; }
+
+/* letter-by-letter comparison. Marks each typed letter ok or bad, and where a letter is missing. */
+function diff(attempt, target) {
+  const a = attempt, b = target, n = a.length, m = b.length;
+  const dp = [];
+  for (let i = 0; i <= n; i++) { dp.push(new Array(m + 1).fill(0)); dp[i][0] = i; }
+  for (let j = 0; j <= m; j++) dp[0][j] = j;
+  for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++)
+    dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  const typed = [], want = [];
+  let i = n, j = m;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1] && dp[i][j] === dp[i - 1][j - 1]) { typed.unshift({ c: a[i - 1], k: 'ok' }); want.unshift({ c: b[j - 1], k: 'ok' }); i--; j--; }
+    else if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + 1) { typed.unshift({ c: a[i - 1], k: 'bad' }); want.unshift({ c: b[j - 1], k: 'mark' }); i--; j--; }
+    else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) { typed.unshift({ c: a[i - 1], k: 'bad' }); i--; }
+    else { typed.unshift({ c: '', k: 'gap' }); want.unshift({ c: b[j - 1], k: 'mark' }); j--; }
+  }
+  return { typed: typed, want: want, dist: dp[n][m] };
+}
+
+function patternStats(p) {
+  return PATTERNS.map(function (pat) {
+    const s = { id: pat.id, name: pat.name, total: pat.list.length, seen: 0, mastered: 0, r: 0, w: 0 };
+    pat.list.forEach(function (w) { const e = p.words[w.id]; if (!e) return; s.seen++; s.r += e.r; s.w += e.w; if (e.b >= MASTERED) s.mastered++; });
+    s.tries = s.r + s.w; s.acc = s.tries ? s.r / s.tries : null;
+    return s;
+  });
+}
+/* what the badge rules look at */
+function unlockStats(p) {
+  const st = patternStats(p), pm = {};
+  let mastered = 0, patDone = 0, seen = 0, firstTry = 0, comeback = 0;
+  st.forEach(function (x) { mastered += x.mastered; seen += x.seen; firstTry += x.r; pm[x.id] = x.mastered; if (x.mastered === x.total) patDone++; });
+  Object.keys(p.words).forEach(function (k) { const e = p.words[k]; if (e.w > 0 && e.b >= MASTERED) comeback++; });
+  return { rounds: roundsOf(p), best: Math.max(p.best, p.streak), mastered: mastered, perfect: p.perfect, patDone: patDone, seen: seen, firstTry: firstTry, comeback: comeback, pm: pm };
+}
+function statVal(st, key) { return key.indexOf('pat:') === 0 ? (st.pm[key.slice(4)] || 0) : st[key]; }
+/* badges are kept once earned, even if a mastered word is missed later. Returns the badges earned just now. */
+function checkBadges(p, now) {
+  const st = unlockStats(p), got = [];
+  BADGES.forEach(function (b) { if (!p.bd[b.id] && statVal(st, b.key) >= b.goal) { p.bd[b.id] = now || Date.now(); got.push(b); } });
+  return got;
+}
+/* Bees are traded for with honey drops: one drop for every finished round and one for every badge earned.
+   A trade uses drops up; the badges themselves stay on the shelf. */
+function ownsBee(p, a) { return !a.cost || !!p.un[a.id] || !!p.bz[a.id]; }
+function badgeBank(p) {
+  const badges = Object.keys(p.bd).length, rounds = roundsOf(p);
+  let spent = 0;
+  Object.keys(p.bz).forEach(function (k) { spent += AV_BY_ID[k].cost; });
+  return { badges: badges, rounds: rounds, earned: badges + rounds, spent: spent, left: Math.max(0, badges + rounds - spent) };
+}
+function buyBee(p, a, now) {
+  if (ownsBee(p, a) || badgeBank(p).left < a.cost) return false;
+  p.bz[a.id] = now || Date.now();
+  return true;
+}
+/* the cheapest bee not yet owned */
+function nextBee(p) {
+  const left = AVATARS.filter(function (a) { return !ownsBee(p, a); });
+  return left.length ? left[0] : null;
+}
+function weakPatterns(p) {
+  return patternStats(p).filter(function (s) { return s.tries >= 4 && s.acc < 0.8; }).sort(function (x, y) { return x.acc - y.acc; }).map(function (s) { return s.id; });
+}
+function counts(p, today) {
+  let mastered = 0, due = 0, seen = 0;
+  Object.keys(p.words).forEach(function (k) { const e = p.words[k]; seen++; if (e.b >= MASTERED) mastered++; if (e.d <= today) due++; });
+  return { mastered: mastered, due: due, seen: seen, total: WORDS.length };
+}
+
+/* choose today's words: reviews that are due first, then new words, leaning toward weak patterns */
+function buildRound(p, today, len, rnd) {
+  rnd = rnd || Math.random;
+  const seen = WORDS.filter(function (w) { return p.words[w.id]; });
+  const due = seen.filter(function (w) { return p.words[w.id].d <= today; })
+    .sort(function (x, y) { return p.words[x.id].d - p.words[y.id].d || p.words[x.id].b - p.words[y.id].b; });
+  const unseen = WORDS.filter(function (w) { return !p.words[w.id]; });
+  const minNew = Math.min(3, len, unseen.length);
+  const picks = due.slice(0, len - minNew);
+  const weak = weakPatterns(p).slice(0, 2);
+  const scored = unseen.map(function (w) {
+    const gradeGap = w.g > p.grade ? 3 + (w.g - p.grade) : p.grade - w.g;
+    return { w: w, k: gradeGap - (weak.indexOf(w.pat) >= 0 ? 1 : 0) + rnd() * 0.9 };
+  }).sort(function (x, y) { return x.k - y.k; });
+  const perPat = {};
+  for (let i = 0; i < scored.length && picks.length < len; i++) {
+    const w = scored[i].w; const c = perPat[w.pat] || 0;
+    if (c >= 3) continue;
+    perPat[w.pat] = c + 1; picks.push(w);
+  }
+  if (picks.length < len) {
+    const have = {}; picks.forEach(function (w) { have[w.id] = 1; });
+    const rest = WORDS.filter(function (w) { return !have[w.id]; }).sort(function (x, y) {
+      const ex = p.words[x.id], ey = p.words[y.id];
+      return (ex ? ex.d : Infinity) - (ey ? ey.d : Infinity);
+    });
+    for (let i = 0; i < rest.length && picks.length < len; i++) picks.push(rest[i]);
+  }
+  return shuffle(picks, rnd);
+}
+
+/* record one word. Only the first try counts toward the schedule. */
+function gradeWord(p, w, firstTry, today, now) {
+  const prev = p.words[w.id];
+  const e = prev ? { b: prev.b, d: prev.d, r: prev.r, w: prev.w, t: prev.t } : { b: 0, d: 0, r: 0, w: 0, t: 0 };
+  const wasMastered = e.b >= MASTERED;
+  if (firstTry) {
+    e.r++;
+    if (!prev) { e.b = 3; e.d = today + IV[3]; }
+    else if (e.d <= today) { e.b = Math.min(5, e.b + 1); e.d = today + IV[e.b]; }
+  } else { e.w++; e.b = 1; e.d = today + 1; }
+  e.t = now || Date.now();
+  p.words[w.id] = e;
+  return { box: e.b, due: e.d, newlyMastered: !wasMastered && e.b >= MASTERED };
+}
+function whenText(days) {
+  if (days <= 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === 7) return 'in a week';
+  if (days === 14) return 'in two weeks';
+  if (days >= 28) return 'in a month';
+  return 'in ' + days + ' days';
+}
+
+/* ---------- state and saving ---------- */
+const LS_KEY = 'honeycomb-spelling-v1';
+/* a random label for this browser, used only to add up rounds played on different devices */
+const DEVICE = (function () {
+  try {
+    let d = localStorage.getItem('honeycomb-device');
+    if (!/^[a-z0-9]{6,12}$/.test(d || '')) { d = (Math.random().toString(36).slice(2, 10) + '000000').slice(0, 8); localStorage.setItem('honeycomb-device', d); }
+    return d;
+  } catch (e) { return 'device'; }
+})();
+function playerFrom(id, raw) { const p = normP(raw); if (id === 't' && !p.name) p.name = 'Test'; if (!p.av) p.av = DEF_AV[id]; return p; }
+let state = { players: { a: playerFrom('a'), b: playerFrom('b'), t: playerFrom('t') }, settings: { len: 12, flash: false, sound: true, keys: true, st: 0 } };
+let db = null, syncMode = 'checking';
+const writers = {};
+
+function normSettings(s) { s = s || {}; const len = int(s.len); return { len: [8, 12, 16].indexOf(len) >= 0 ? len : 12, flash: !!s.flash, sound: s.sound !== false, keys: s.keys !== false, st: int(s.st) }; }
+function loadLocal() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (raw && raw.players) { IDS.forEach(function (id) { state.players[id] = playerFrom(id, raw.players[id]); }); state.settings = normSettings(raw.settings); }
+  } catch (e) { /* storage unavailable: start fresh */ }
+}
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+function bodyFor(path) { return path === 'app/settings' ? normSettings(state.settings) : normP(state.players[path.split('/')[1]]); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function queueWrite(path) {
+  if (!db || syncMode !== 'cloud') return;
+  const w = writers[path] || (writers[path] = { busy: false, dirty: false });
+  if (w.busy) { w.dirty = true; return; }
+  w.busy = true;
+  (async function () {
+    let retried = false;
+    do {
+      w.dirty = false;
+      try { await db.doc(path).set(bodyFor(path)); retried = false; }
+      catch (e) {
+        if (e && e.code === 'unavailable' && !retried) { retried = true; w.dirty = true; await sleep(800 + Math.random() * 800); }
+        else { setSync('local'); break; }
+      }
+    } while (w.dirty);
+    w.busy = false;
+  })();
+}
+function savePlayer(id) { saveLocal(); queueWrite('players/' + id); }
+function saveSettings() { state.settings.st = Date.now(); saveLocal(); queueWrite('app/settings'); }
+function setSync(mode) { syncMode = mode; const el = document.getElementById('sync'); if (el) el.textContent = syncText(); }
+function syncText() {
+  if (syncMode === 'checking') return 'Checking where progress can be saved.';
+  return 'Progress is saved in this browser on this device only. A transfer code moves it to another device.';
+}
+function initDb() { setSync('local'); }
+
+/* ---------- transfer codes: carry progress between devices with no account ---------- */
+let xfer = { code: '', outMsg: '', inMsg: '' };
+function b64u(u8) {
+  let bin = '';
+  for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function unb64u(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s), u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+function slimPlayer(id) {
+  const p = normP(state.players[id]);
+  return { slot: id, name: p.name, grade: p.grade, av: p.av, pt: p.pt, rz: p.rz, last: p.last, streak: p.streak, best: p.best, perfect: p.perfect, rounds: p.rounds, rc: p.rc, un: p.un, bz: p.bz, bd: p.bd,
+    w: Object.keys(p.words).map(function (k) { const e = p.words[k]; return [k, e.b, e.d, e.r, e.w, Math.ceil(e.t / 1000)]; }) };
+}
+function fatPlayer(raw) {
+  raw = raw && typeof raw === 'object' ? raw : {};
+  const words = {};
+  (Array.isArray(raw.w) ? raw.w : []).forEach(function (x) {
+    if (Array.isArray(x) && typeof x[0] === 'string' && own(WORD_BY_ID, x[0])) words[x[0]] = { b: x[1], d: x[2], r: x[3], w: x[4], t: int(x[5]) * 1000 };
+  });
+  return normP({ name: raw.name, grade: raw.grade, av: raw.av, pt: raw.pt, rz: raw.rz, last: raw.last, streak: raw.streak, best: raw.best, perfect: raw.perfect, rounds: raw.rounds, rc: raw.rc, un: raw.un, bz: raw.bz, bd: raw.bd, words: words });
+}
+/* everyone on this device who has a name (and the test account if it has been used) */
+async function makeCode() {
+  const list = IDS.filter(function (id) {
+    const p = state.players[id];
+    return id === 't' ? (roundsOf(p) > 0 || Object.keys(p.words).length > 0) : !!p.name;
+  }).map(slimPlayer);
+  if (!list.length) return '';
+  const json = JSON.stringify({ v: 1, players: list });
+  try {
+    if ('CompressionStream' in window) {
+      const buf = await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer();
+      return 'HC1-' + b64u(new Uint8Array(buf));
+    }
+  } catch (e) { /* fall through to the uncompressed form */ }
+  return 'HC0-' + b64u(new TextEncoder().encode(json));
+}
+async function readCode(code) {
+  const m = /^HC([01])-([A-Za-z0-9_-]+)$/.exec(String(code || '').replace(/\s+/g, ''));
+  if (!m) throw new Error('shape');
+  const bytes = unb64u(m[2]);
+  let json;
+  if (m[1] === '0') json = new TextDecoder().decode(bytes);
+  else {
+    if (!('DecompressionStream' in window)) throw new Error('old');
+    json = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'))).text();
+  }
+  const data = JSON.parse(json);
+  if (!data || data.v !== 1 || !Array.isArray(data.players)) throw new Error('shape');
+  return data.players.slice(0, 3);
+}
+/* spellers are matched by name; an unmatched speller takes an empty place if there is one */
+function importPlayers(list) {
+  const out = [], used = {};
+  list.forEach(function (raw) {
+    const inc = fatPlayer(raw), nm = inc.name.trim().toLowerCase();
+    let slot = null;
+    if (raw && raw.slot === 't') slot = 't';
+    else if (nm) {
+      slot = ['a', 'b'].filter(function (id) { return !used[id] && state.players[id].name.trim().toLowerCase() === nm; })[0]
+        || ['a', 'b'].filter(function (id) { return !used[id] && !state.players[id].name; })[0] || null;
+    }
+    if (!slot || used[slot]) { out.push({ name: inc.name || 'A speller', ok: false }); return; }
+    used[slot] = 1;
+    state.players[slot] = playerFrom(slot, mergePlayer(state.players[slot], inc));
+    checkBadges(state.players[slot]);
+    savePlayer(slot);
+    out.push({ name: state.players[slot].name, ok: true, words: Object.keys(inc.words).length });
+  });
+  return out;
+}
+function canShare() { return typeof navigator.share === 'function'; }
+
+/* ---------- speech ---------- */
+const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+let voice = null;
+function pickVoice() {
+  if (!synth) return;
+  let vs = [];
+  try { vs = synth.getVoices() || []; } catch (e) { vs = []; }
+  voice = vs.find(function (v) { return /^en[-_]US/i.test(v.lang) && /Samantha|Google US English|Aria|Jenny|Ava/i.test(v.name); })
+    || vs.find(function (v) { return /^en[-_]US/i.test(v.lang); })
+    || vs.find(function (v) { return /^en/i.test(v.lang); }) || null;
+}
+if (synth) { pickVoice(); try { synth.addEventListener('voiceschanged', pickVoice); } catch (e) { /* older browsers */ } }
+function say(texts, rate) {
+  if (!synth) return;
+  try {
+    synth.cancel();
+    texts.forEach(function (t) {
+      const u = new SpeechSynthesisUtterance(t);
+      if (voice) u.voice = voice;
+      u.lang = 'en-US'; u.rate = rate || 0.9;
+      synth.speak(u);
+    });
+  } catch (e) { /* speech blocked */ }
+}
+function hush() { if (synth) { try { synth.cancel(); } catch (e) { /* ignore */ } } }
+function flashMode() { return state.settings.flash || !synth; }
+
+/* ---------- sounds ----------
+   Played as ordinary sound clips first (most reliable on phones and tablets, and not silenced by an
+   iPhone or iPad ring switch), with the browser's tone generator as the fallback.
+   A note is [pitch in Hz, start in seconds, loudness, how fast it fades]. */
+const BELL = [[1, 1], [2.01, 0.25]];
+const BRASS = [[1, 1], [2, 0.45], [3, 0.25], [4, 0.12]];
+const SOUNDS = {
+  first: { parts: BELL, notes: [[1318.5, 0, 0.5, 6.5], [1760, 0.12, 0.5, 6.5]] },
+  later: { parts: BELL, vol: 0.7, notes: [[1046.5, 0, 0.42, 6.5]] },
+  /* ta-da-da-DAAA: three quick rising notes, then a held chord with a sparkle on top */
+  /* a quiet click for each letter: a few thousandths of a second of soft noise, no musical pitch.
+     Four slightly different ones so fast typing does not sound mechanical; deleting is a touch duller. */
+  key0: { click: { seed: 11, fade: 700, soft: 0.40 }, vol: 0.2 },
+  key1: { click: { seed: 23, fade: 760, soft: 0.44 }, vol: 0.2 },
+  key2: { click: { seed: 37, fade: 660, soft: 0.37 }, vol: 0.2 },
+  key3: { click: { seed: 53, fade: 720, soft: 0.42 }, vol: 0.2 },
+  keydel: { click: { seed: 71, fade: 520, soft: 0.22 }, vol: 0.2 },
+  fanfare: { parts: BRASS, notes: [[523.25, 0, 0.36, 9], [659.25, 0.13, 0.36, 9], [783.99, 0.26, 0.36, 9],
+    [523.25, 0.42, 0.2, 2.2], [1046.5, 0.42, 0.32, 2.2], [1318.5, 0.42, 0.22, 2.2], [1568, 0.42, 0.18, 2.2], [2093, 0.66, 0.1, 4.5]] }
+};
+function noteLen(nt) { return Math.min(1.8, 7 / nt[3]); }
+let keyN = 0;
+let actx = null, snd = null, clipOK = true;
+const RATE = 22050;
+/* builds the sound as a list of samples, peaking at 0.85 times its volume */
+function renderSound(sound) {
+  let f;
+  if (sound.click) {
+    const n = Math.floor(RATE * 0.08);              /* the click itself is over in about 10 ms; the rest is silence */
+    f = new Float32Array(n);
+    let seed = sound.click.seed, y = 0;
+    for (let i = 0; i < n; i++) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      const white = seed / 1073741824 - 1;
+      y += sound.click.soft * (white * Math.exp(-i / RATE * sound.click.fade) - y);   /* smoothing takes the sharp edge off */
+      f[i] = y;
+    }
+  } else {
+    let secs = 0;
+    sound.notes.forEach(function (nt) { secs = Math.max(secs, nt[1] + noteLen(nt)); });
+    const n = Math.floor(RATE * secs);
+    f = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / RATE; let x = 0;
+      sound.notes.forEach(function (nt) {
+        const u = t - nt[1]; if (u < 0) return;
+        const env = Math.min(1, u / 0.008) * Math.exp(-u * nt[3]);
+        sound.parts.forEach(function (pt) { x += nt[2] * pt[1] * env * Math.sin(2 * Math.PI * nt[0] * pt[0] * u); });
+      });
+      f[i] = x * Math.min(1, (n - i) / (RATE * 0.12));          /* short fade at the very end, so it does not click */
+    }
+  }
+  let peak = 0;
+  for (let i = 0; i < f.length; i++) peak = Math.max(peak, Math.abs(f[i]));
+  const gain = peak > 0 ? 0.85 * (sound.vol || 1) / peak : 1;
+  for (let i = 0; i < f.length; i++) f[i] *= gain;
+  return f;
+}
+function wavURI(sound) {
+  const f = renderSound(sound), n = f.length;
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const str = function (o, t) { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(f[i] * 32767), true);
+  const u8 = new Uint8Array(buf); let bin = '';
+  for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+function primeAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC && !actx) actx = new AC();
+    if (actx && actx.state !== 'running') actx.resume();
+  } catch (e) { /* no tone generator */ }
+  if (!snd) {
+    try {
+      snd = {};
+      Object.keys(SOUNDS).forEach(function (k) {
+        const a = new Audio(wavURI(SOUNDS[k]));
+        a.preload = 'auto';
+        a.addEventListener('error', function () { clipOK = false; });
+        snd[k] = a;
+      });
+    } catch (e) { snd = null; clipOK = false; }
+  }
+}
+function tonePlay(sound) {
+  if (!actx) return Promise.resolve('blocked');
+  try {
+    const f = renderSound(sound), ab = actx.createBuffer(1, f.length, RATE);
+    ab.getChannelData(0).set(f);
+    const src = actx.createBufferSource();
+    src.buffer = ab; src.connect(actx.destination); src.start(actx.currentTime + 0.01);
+    if (actx.state === 'running') return Promise.resolve('played');
+    return Promise.race([actx.resume(), sleep(700)]).then(function () { return actx.state === 'running' ? 'played' : 'blocked'; }, function () { return 'blocked'; });
+  } catch (e) { return Promise.resolve('blocked'); }
+}
+/* kind is 'first', 'later' or 'fanfare'. Resolves to 'played', 'blocked' or 'off'. */
+function playSound(kind, force) {
+  if (!force && state.settings.sound === false) return Promise.resolve('off');
+  primeAudio();
+  if (snd && clipOK) {
+    try {
+      const a = snd[kind];
+      try { a.currentTime = 0; } catch (e) { /* not loaded yet */ }
+      const pr = a.play();
+      if (pr && pr.then) return pr.then(function () { return 'played'; }, function (err) {
+        if (err && err.name === 'NotSupportedError') clipOK = false;
+        return tonePlay(SOUNDS[kind]);
+      });
+      return Promise.resolve('played');
+    } catch (e) { clipOK = false; }
+  }
+  return tonePlay(SOUNDS[kind]);
+}
+function ding(first, force) { return playSound(first ? 'first' : 'later', force); }
+function keySound(deleting) {
+  if (state.settings.keys === false) return;
+  playSound(deleting ? 'keydel' : 'key' + (keyN++ % 4));
+}
+['pointerdown', 'keydown'].forEach(function (evt) { document.addEventListener(evt, primeAudio, { once: true, capture: true }); });
+
+/* ---------- drawing helpers ---------- */
+function hexPts(cx, cy, r) {
+  let s = '';
+  for (let k = 0; k < 6; k++) { const a = Math.PI / 180 * (60 * k - 90); s += (cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1) + ' '; }
+  return s.trim();
+}
+function boxClass(e) { if (!e) return 's0'; if (e.b >= MASTERED) return 's3'; if (e.b === 3) return 's2'; return 's1'; }
+function stripSVG(p) {
+  const r = 12, w = Math.sqrt(3) * r, step = w + 3;
+  const stats = patternStats(p);
+  let out = '';
+  stats.forEach(function (s, i) {
+    const f = s.mastered / s.total;
+    out += '<polygon class="hx" style="cursor:default;fill-opacity:' + (f ? (0.2 + 0.8 * f).toFixed(2) : 0) + '" points="' + hexPts(w / 2 + 1 + i * step, r + 1, r) + '"><title>' + esc(s.name) + ': ' + s.mastered + ' of ' + s.total + ' mastered</title></polygon>';
+  });
+  return '<svg class="strip" viewBox="0 0 ' + (stats.length * step).toFixed(1) + ' ' + (2 * r + 2) + '" role="img" aria-label="Mastery in each of the ' + stats.length + ' spelling patterns">' + out + '</svg>';
+}
+function combSVG(p, pat) {
+  const r = 20, w = Math.sqrt(3) * r, step = w + 3, cols = Math.ceil(pat.list.length / 2), rowStep = 1.5 * r + 3;
+  let out = '';
+  pat.list.forEach(function (word, i) {
+    const row = i < cols ? 0 : 1, col = row ? i - cols : i;
+    const e = p.words[word.id];
+    const cls = 'hx ' + boxClass(e) + (e && e.b === 1 && e.w > 0 ? ' trouble' : '');
+    out += '<polygon class="' + cls + '" tabindex="0" role="button" data-hex="' + word.id + '" aria-label="' + (e ? esc(word.w) : 'A word not met yet') + '" points="' + hexPts(w / 2 + 2 + col * step + (row ? step / 2 : 0), r + 2 + row * rowStep, r) + '"></polygon>';
+  });
+  return '<svg viewBox="0 0 ' + (cols * step + step / 2 + 2).toFixed(1) + ' ' + (2 * r + rowStep + 4).toFixed(1) + '">' + out + '</svg>';
+}
+function tilesHTML(cells, extra) {
+  return '<div class="tiles">' + cells.map(function (c, i) {
+    if (c.k === 'gap') return '<span class="tile gap" title="a letter is missing here">·</span>';
+    return '<span class="tile ' + c.k + '"' + (extra ? ' style="animation-delay:' + (i * 40) + 'ms"' : '') + '>' + esc(c.c) + '</span>';
+  }).join('') + '</div>';
+}
+function avOf(id) { const p = state.players[id], a = AV_BY_ID[p.av]; return a && ownsBee(p, a) ? a : AV_BY_ID[DEF_AV[id]]; }
+function pname(id) { return state.players[id].name || (id === 'a' ? 'Speller 1' : id === 'b' ? 'Speller 2' : 'Test'); }
+
+/* ---------- views ---------- */
+const $ = function (id) { return document.getElementById(id); };
+let view = 'home', sel = 'a', round = null, editing = {}, confirmReset = false, flashTimer = null;
+
+function show(v) {
+  view = v;
+  ['home', 'play', 'done', 'bees', 'hive', 'shelf', 'grown'].forEach(function (k) { $('v-' + k).hidden = k !== v; });
+  document.querySelectorAll('.nav button').forEach(function (b) {
+    const on = b.dataset.go === v || (b.dataset.go === 'home' && (v === 'play' || v === 'done' || v === 'bees'));
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  if (v !== 'play') { hush(); clearTimeout(flashTimer); }
+  if (v !== 'done' && v !== 'bees') stopFlight();
+  if (v === 'home') renderHome();
+  if (v === 'bees') renderBees();
+  if (v === 'hive') renderHive();
+  if (v === 'shelf') renderShelf();
+  if (v === 'grown') renderGrown();
+}
+
+function gradeOptions(g) { return [4, 5, 6].map(function (x) { return '<option value="' + x + '"' + (x === g ? ' selected' : '') + '>Grade ' + x + '</option>'; }).join(''); }
+
+function renderHome() {
+  const today = dayNum();
+  const cards = IDS.map(function (id) {
+    const p = state.players[id];
+    if (!p.name || editing[id]) {
+      return '<article class="pcard' + (id === 't' ? ' test' : '') + '"><div class="pc-top"><div class="avstill">' + beeSVG(avOf(id), 'happy') + '</div><div class="pc-head"><h2>' + (p.name ? 'Edit ' + esc(p.name) : (id === 'a' ? 'First speller' : 'Second speller')) + '</h2></div></div>'
+        + '<form class="row" data-setup="' + id + '">'
+        + '<div class="field"><label for="name-' + id + '">Name</label><input type="text" id="name-' + id + '" maxlength="20" autocomplete="off" value="' + esc(p.name) + '" placeholder="Type a name"></div>'
+        + '<div class="field"><label for="grade-' + id + '">Word level</label><select id="grade-' + id + '">' + gradeOptions(p.grade) + '</select></div>'
+        + '<button type="submit" class="btn">Save</button></form>'
+        + '<p class="small soft">New words start at this grade level. Review words can be from any level.</p></article>';
+    }
+    const c = counts(p, today), played = p.last === today;
+    const streak = p.last >= today - 1 ? p.streak : 0;
+    return '<article class="pcard' + (id === 't' ? ' test' : '') + '"><div class="pc-top"><button type="button" class="avbtn" data-bees="' + id + '" aria-label="Change ' + esc(p.name) + '\'s bee">' + beeSVG(avOf(id), 'happy') + '</button>'
+      + '<div class="pc-head"><h2>' + esc(p.name) + '</h2><span class="tag">' + (id === 't' ? 'Test account · ' : '') + 'Grade ' + p.grade + ' words</span></div></div>'
+      + (id === 't' ? '<p class="small soft">For trying things out. It keeps its own progress, so nothing here touches the two spellers.</p>' : '')
+      + stripSVG(p)
+      + '<p class="pc-stats"><span><b>' + c.mastered + '</b> mastered</span><span><b>' + c.due + '</b> to review today</span><span><b>' + streak + '</b>-day streak</span><span><b>' + Object.keys(p.bd).length + '</b> ' + (Object.keys(p.bd).length === 1 ? 'badge' : 'badges') + '</span><span><b>' + badgeBank(p).left + '</b> honey ' + (badgeBank(p).left === 1 ? 'drop' : 'drops') + '</span></p>'
+      + '<div class="pc-go"><button type="button" class="btn" data-start="' + id + '">' + (played ? 'Play another round' : "Start today's round") + '</button>'
+      + '<div class="pc-links"><button type="button" class="link" data-bees="' + id + '">My bee</button><button type="button" class="link" data-hive="' + id + '">My hive</button><button type="button" class="link" data-shelf="' + id + '">My badges</button><button type="button" class="link" data-edit="' + id + '">Edit</button></div></div></article>';
+  }).join('');
+  $('v-home').innerHTML = '<h1>Who is spelling today?</h1>'
+    + '<p class="lede">Each round is ' + state.settings.len + ' words. ' + (flashMode() ? 'Look at the word, then type it from memory.' : 'Listen to the word, then type it.') + ' Words you miss come back tomorrow. Words you know come back later, until they stick.</p>'
+    + '<div class="players">' + cards + '</div>';
+}
+
+/* ----- bee picker ----- */
+let confirmBee = '';
+function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+function renderBees() {
+  const p = state.players[sel], bank = badgeBank(p), cur = avOf(sel);
+  const cards = AVATARS.map(function (a) {
+    if (ownsBee(p, a)) {
+      const mine = cur.id === a.id;
+      return '<button type="button" class="beecard" data-bee="' + a.id + '" aria-pressed="' + mine + '">' + beeSVG(a, mine ? 'cheer' : 'happy') + '<b>' + a.name + '</b><small>' + (mine ? 'Your bee' : 'Tap to pick') + '</small></button>';
+    }
+    const can = bank.left >= a.cost;
+    return '<div class="beecard locked' + (can ? ' can' : '') + '">' + lockSVG() + beeSVG(a, 'happy') + '<b>' + a.name + '</b><small>Costs ' + plural(a.cost, 'honey drop') + '</small>'
+      + (can
+        ? (confirmBee === a.id
+          ? '<button type="button" class="btn small" data-buy="' + a.id + '">Yes, trade ' + a.cost + '</button><button type="button" class="link" data-buy-no="1">Not now</button>'
+          : '<button type="button" class="btn small" data-buy-ask="' + a.id + '">Trade ' + plural(a.cost, 'drop') + '</button>')
+        : '<div class="bar" role="img" aria-label="' + bank.left + ' of ' + a.cost + ' honey drops"><i class="mid" style="width:' + Math.round(100 * bank.left / a.cost) + '%"></i></div><small>' + plural(a.cost - bank.left, 'more drop') + ' to go</small>')
+      + '</div>';
+  }).join('');
+  $('v-bees').innerHTML = '<div class="title-row"><div id="pick-bee">' + beeSVG(cur, 'happy', 'bob') + '</div><h1>Pick your bee, ' + esc(pname(sel)) + '</h1></div>'
+    + '<div class="bank">' + dropSVG() + '<b>' + bank.left + '</b><span>honey ' + (bank.left === 1 ? 'drop' : 'drops') + ' to spend</span><button type="button" class="link" data-shelf="' + sel + '">See my badges</button></div>'
+    + '<p class="lede">You get 1 honey drop for every round you finish and 1 for every badge you earn. Trade drops for a new bee. Your badges stay on your Honey Shelf.</p>'
+    + '<div class="bees">' + cards + '</div>'
+    + '<div class="pc-actions"><button type="button" class="btn" data-go="home">Done</button></div>';
+}
+
+/* ----- play ----- */
+function startRound(id) {
+  const p = state.players[id], today = dayNum();
+  const picks = buildRound(p, today, state.settings.len);
+  round = { pid: id, today: today, queue: picks.map(function (w) { return { w: w, repeat: false }; }), i: 0, total: picks.length, results: [], phase: 'try1', peeked: false, flashing: false, peeks: 0 };
+  show('play');
+  nextItem();
+}
+function renderPips() {
+  let out = '';
+  for (let k = 0; k < round.total; k++) {
+    const res = round.results[k];
+    out += '<span class="pip ' + (res ? (res.first ? 'ok' : 'no') : (k === round.results.length ? 'now' : '')) + '"></span>';
+  }
+  $('pips').innerHTML = out;
+}
+function sentenceHTML(w) {
+  const re = new RegExp('\\b' + w.w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+  const m = re.exec(w.s);
+  if (!m) return esc(w.s);
+  return esc(w.s.slice(0, m.index)) + '<span class="blank" role="img" aria-label="blank"></span>' + esc(w.s.slice(m.index + m[0].length));
+}
+function setInput(opts) {
+  const inp = $('answer');
+  if ('value' in opts) inp.value = opts.value;
+  inp.disabled = !!opts.disabled; inp.readOnly = !!opts.readOnly;
+  inp.hidden = !!opts.hidden;
+  $('check').textContent = opts.label;
+  if (opts.focus) { try { inp.focus(); } catch (e) { /* ignore */ } }
+}
+function setBee(mood, anim) { if (round) $('play-bee').innerHTML = beeSVG(avOf(round.pid), mood, anim); }
+function burst() {
+  const el = $('burst');
+  let out = '';
+  for (let k = 0; k < 14; k++) {
+    const a = Math.PI * 2 * k / 14 + Math.random() * 0.4, d = 70 + Math.random() * 80;
+    out += '<i style="--dx:' + Math.round(Math.cos(a) * d) + 'px;--dy:' + Math.round(Math.sin(a) * d - 20) + 'px;--rot:' + Math.round(Math.random() * 360) + 'deg;animation-delay:' + Math.round(Math.random() * 80) + 'ms"></i>';
+  }
+  el.innerHTML = out;
+  setTimeout(function () { el.innerHTML = ''; }, 1000);
+}
+function nextItem() {
+  if (round.i >= round.queue.length) return finishRound();
+  const it = round.queue[round.i];
+  round.phase = 'try1'; round.peeked = false;
+  const fm = flashMode();
+  $('play-who').textContent = pname(round.pid);
+  renderPips();
+  $('sentence').innerHTML = sentenceHTML(it.w);
+  setBee('happy', 'bob');
+  $('feedback').innerHTML = it.repeat ? '<p class="note">One more go at a word from earlier.</p>' : '';
+  $('hear-label').textContent = fm ? 'Show the word' : 'Hear the word';
+  $('ico-speak').toggleAttribute('hidden', fm); $('ico-eye').toggleAttribute('hidden', !fm);
+  $('aux').hidden = fm;
+  $('flash').hidden = true;
+  setInput({ value: '', label: 'Check', focus: true });
+  if (fm) flashWord(false); else say([it.w.w, it.w.s, it.w.w]);
+}
+function flashWord(countsAsPeek) {
+  const it = round.queue[round.i], f = $('flash');
+  if (round.phase !== 'try1' && round.phase !== 'try2') return;
+  if (countsAsPeek) { round.peeked = true; round.peeks++; }
+  clearTimeout(flashTimer);
+  round.flashing = true;
+  f.innerHTML = tilesHTML(it.w.w.split('').map(function (c) { return { c: c, k: 'mark' }; }));
+  f.hidden = false;
+  setInput({ value: '', label: 'Check', disabled: true });
+  flashTimer = setTimeout(function () {
+    f.hidden = true; f.innerHTML = ''; round.flashing = false;
+    setInput({ value: '', label: 'Check', focus: true });
+  }, 1300 + it.w.w.length * 260);
+}
+function tipHTML(w) {
+  const pat = PAT_BY_ID[w.pat];
+  return '<p class="tip"><b>' + esc(pat.name) + '.</b> ' + esc(pat.tip) + '</p>';
+}
+function onCheck() {
+  if (!round || round.flashing) return;
+  const it = round.queue[round.i], w = it.w, fb = $('feedback');
+  if (round.phase === 'done') { round.i++; return nextItem(); }
+  if (round.phase === 'study') {
+    round.phase = 'cover';
+    fb.innerHTML = '<p class="note">Now type it from memory.</p>';
+    setInput({ value: '', label: 'Check', focus: true });
+    return;
+  }
+  const val = norm($('answer').value);
+  if (!val) { $('answer').focus(); return; }
+  const ok = val === w.w.toLowerCase();
+  if (ok) return finishItem(round.phase === 'try1' && !round.peeked);
+  const d = diff(val, w.w.toLowerCase());
+  if (round.phase === 'try1') {
+    round.phase = 'try2';
+    fb.innerHTML = '<p class="fb-title miss">' + (d.dist <= 2 ? 'Close. Fix the marked letters.' : 'Not yet. Check the marked letters.') + '</p>'
+      + tilesHTML(d.typed)
+      + '<p class="note">Red letters are wrong or extra. A red dot means a letter is missing there.</p>'
+      + tipHTML(w);
+    setInput({ label: 'Check again', focus: true });
+    setBee('oops', 'shake');
+    if (!flashMode()) say([w.w], 0.8);
+  } else {
+    round.phase = 'study';
+    const want = d.want.map(function (c, k) { return { c: w.w[k], k: c.k === 'mark' ? 'mark' : 'ok' }; });
+    fb.innerHTML = '<p class="fb-title">Here it is. Study it, then hide it.</p>'
+      + tilesHTML(want)
+      + (w.h ? '<p class="tip"><b>Remember:</b> ' + esc(w.h) + '</p>' : tipHTML(w));
+    setInput({ value: '', label: 'Hide it and try', hidden: true });
+    setBee('oops', 'shake');
+    $('check').focus();
+    if (!flashMode()) say([w.w], 0.8);
+  }
+}
+function finishItem(first) {
+  const it = round.queue[round.i], w = it.w, p = state.players[round.pid], fb = $('feedback');
+  let when = '';
+  if (!it.repeat) {
+    const g = gradeWord(p, w, first, round.today);
+    round.results.push({ w: w, first: first, mastered: g.newlyMastered });
+    if (!first) round.queue.push({ w: w, repeat: true });
+    when = first ? 'You will see it again ' + whenText(g.due - round.today) + '.' : 'It comes back later in this round, and again tomorrow.';
+    savePlayer(round.pid);
+    renderPips();
+  }
+  round.phase = 'done';
+  ding(first);
+  setBee('cheer', 'hop');
+  if (first) burst();
+  const last = round.i === round.queue.length - 1;
+  fb.innerHTML = '<p class="fb-title good">' + (first ? 'Yes! You got it.' : 'There it is!') + '</p>'
+    + tilesHTML(w.w.split('').map(function (c) { return { c: c, k: 'win' }; }), true)
+    + (w.h ? '<p class="tip"><b>Remember:</b> ' + esc(w.h) + '</p>' : '')
+    + (when ? '<p class="note">' + when + '</p>' : '');
+  setInput({ value: w.w, label: last ? 'Finish round' : 'Next word', readOnly: true });
+  $('check').focus();
+}
+function finishRound() {
+  const pid = round.pid, p = state.players[pid], today = round.today;
+  if (p.last !== today) { p.streak = p.last === today - 1 ? p.streak + 1 : 1; p.last = today; }
+  p.best = Math.max(p.best, p.streak);
+  p.rc[DEVICE] = (p.rc[DEVICE] || 0) + 1;
+  const first = round.results.filter(function (r) { return r.first; }).length;
+  const filled = round.results.filter(function (r) { return r.mastered; }).length;
+  const miss = round.results.length - first;
+  if (!miss && round.results.length >= 8) p.perfect++;
+  const newB = checkBadges(p);
+  savePlayer(pid);
+  const nb = nextBee(p), bank = badgeBank(p), canTrade = nb && bank.left >= nb.cost;
+  $('v-done').innerHTML = '<div class="title-row"><div id="done-bee">' + beeSVG(avOf(pid), 'cheer') + '</div><h1>Round done, ' + esc(pname(pid)) + '!</h1></div>'
+    + (newB.length ? '<div class="unlock"><div class="who-new"><p class="tag">New on your Honey Shelf</p><div class="newrow">'
+        + newB.map(function (b) { return '<figure>' + badgeSVG(b) + '<figcaption>' + b.name + '</figcaption></figure>'; }).join('')
+        + '</div></div><button type="button" class="btn" data-shelf="' + pid + '">See my shelf</button></div>' : '')
+    + (canTrade ? '<div class="unlock"><div>' + beeSVG(nb, 'happy') + '</div><div class="who-new"><p class="tag">You can trade for a bee</p><h2>' + plural(bank.left, 'honey drop') + ' to spend</h2><p class="small soft">' + nb.name + ' costs ' + plural(nb.cost, 'drop') + '.</p></div>'
+        + '<button type="button" class="btn" data-bees="' + pid + '">Pick a bee</button></div>' : '')
+    + '<div class="score"><div class="stat"><b>' + first + ' of ' + round.results.length + '</b><span>right on the first try</span></div>'
+    + '<div class="stat"><b>' + filled + '</b><span>hive ' + (filled === 1 ? 'cell' : 'cells') + ' filled today</span></div>'
+    + '<div class="stat"><b>' + p.streak + '</b><span>' + (p.streak === 1 ? 'day' : 'days') + ' in a row</span></div>'
+    + '<div class="stat"><b>+' + (1 + newB.length) + '</b><span>honey ' + (newB.length ? 'drops' : 'drop') + ' earned</span></div></div>'
+    + '<p class="lede">' + (miss ? 'The ' + (miss === 1 ? 'word' : miss + ' words') + ' you missed will be back tomorrow.' : 'Nothing to fix. These words will be back in a while to check they stuck.')
+    + (nb && !canTrade ? ' ' + plural(nb.cost - bank.left, 'more honey drop') + ' and you can trade for ' + nb.name + '.' : '') + '</p>'
+    + '<div class="sheet"><ul class="wordlist">' + round.results.map(function (r) { return '<li><span class="w">' + esc(r.w.w) + '</span><span class="chip ' + (r.first ? 'ok' : 'no') + '">' + (r.first ? 'first try' : 'back tomorrow') + '</span></li>'; }).join('') + '</ul></div>'
+    + '<div class="pc-actions"><button type="button" class="btn" data-go="home">Done</button><button type="button" class="btn quiet" data-hive="' + pid + '">See my hive</button><button type="button" class="btn quiet" data-bees="' + pid + '">My bee</button></div>';
+  round = null;
+  show('done');
+  window.scrollTo(0, 0);
+  flyBee(pid);
+  if (newB.length) playSound('fanfare');
+}
+
+/* ----- the bee's victory lap: it takes off from the heading, loops around the screen, and lands back ----- */
+let flight = null;
+function stopFlight() {
+  const home = flight && flight.home;
+  if (flight) cancelAnimationFrame(flight.raf);
+  flight = null;
+  const layer = $('flight'); layer.innerHTML = ''; layer.hidden = true;
+  if (home) home.style.visibility = '';
+}
+/* home is where the bee takes off from and lands: the round-done heading, or the test spot in Grown-ups.
+   Returns false when the device asks for reduced motion and the flight is skipped. */
+function flyBee(pid, home) {
+  stopFlight();
+  home = home || $('done-bee');
+  const layer = $('flight');
+  if (!home) return false;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  const base = home.getBoundingClientRect().width || 88;
+  const big = Math.max(72, Math.min(120, Math.min(window.innerWidth, window.innerHeight) * 0.2)) / base;
+  layer.hidden = false;
+  layer.innerHTML = '<div class="flyer" style="width:' + base + 'px">' + beeSVG(avOf(pid), 'cheer', 'fly') + '</div>';
+  const bee = layer.firstChild;
+  home.style.visibility = 'hidden';
+  const me = flight = { raf: 0, home: home };
+  const dur = 5200, t0 = performance.now(), turn = Math.random() < 0.5 ? 1 : -1;
+  const ease = function (v) { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+  let lastX = null, lastDrop = 0, drops = 0;
+  function frame(now) {
+    if (flight !== me) return;
+    if (!home.isConnected) return stopFlight();
+    const t = Math.min(1, (now - t0) / dur), W = window.innerWidth, H = window.innerHeight;
+    const r = home.getBoundingClientRect(), hx = r.left + r.width / 2, hy = r.top + r.height / 2;
+    const fx = W * (0.5 + 0.4 * turn * Math.sin(Math.PI * 2 * 1.5 * t));
+    const fy = H * (0.46 - 0.3 * Math.sin(Math.PI * 2 * 2.5 * t));
+    const k = Math.min(ease(t / 0.14), 1 - ease((t - 0.8) / 0.2));     /* 0 = sitting in the heading, 1 = free flight */
+    const x = hx + (fx - hx) * k, y = hy + (fy - hy) * k;
+    const tilt = lastX === null ? 0 : Math.max(-24, Math.min(24, (x - lastX) * 1.8));
+    lastX = x;
+    bee.style.transform = 'translate(' + (x - base / 2).toFixed(1) + 'px,' + (y - base / 2).toFixed(1) + 'px) rotate(' + tilt.toFixed(1) + 'deg) scale(' + (1 + (big - 1) * k).toFixed(3) + ')';
+    if (k > 0.4 && now - lastDrop > 70) {
+      lastDrop = now;
+      const d = document.createElement('i');
+      d.className = 'drop' + (++drops % 3 === 0 ? ' alt' : '');
+      d.style.left = x.toFixed(0) + 'px'; d.style.top = (y + base * 0.3).toFixed(0) + 'px';
+      layer.insertBefore(d, bee);
+      setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 900);
+    }
+    if (t < 1) { me.raf = requestAnimationFrame(frame); return; }
+    /* landed: put the bee back in the heading with a hop and a burst */
+    flight = null;
+    home.style.visibility = '';
+    const svg = home.firstChild; if (svg && svg.classList) svg.classList.add('hop');
+    let out = '';
+    for (let n = 0; n < 14; n++) {
+      const a = Math.PI * 2 * n / 14 + Math.random() * 0.4, dist = 50 + Math.random() * 60;
+      out += '<i style="--dx:' + Math.round(Math.cos(a) * dist) + 'px;--dy:' + Math.round(Math.sin(a) * dist) + 'px;--rot:' + Math.round(Math.random() * 360) + 'deg"></i>';
+    }
+    layer.innerHTML = '<div class="burst" style="left:' + hx.toFixed(0) + 'px;top:' + hy.toFixed(0) + 'px">' + out + '</div>';
+    setTimeout(function () { if (!flight) { layer.innerHTML = ''; layer.hidden = true; } }, 1000);
+  }
+  frame(t0);   /* place the bee on its spot before the first paint */
+  return true;
+}
+
+/* ----- hive ----- */
+function segHTML() {
+  return '<div class="seg" role="group" aria-label="Choose a speller">' + IDS.map(function (id) {
+    return '<button type="button" data-sel="' + id + '" aria-pressed="' + (sel === id) + '">' + esc(pname(id)) + '</button>';
+  }).join('') + '</div>';
+}
+function swatch(cls) { return '<svg viewBox="0 0 16 18" aria-hidden="true"><polygon class="hx ' + cls + '" style="cursor:default" points="8,1 15,5 15,13 8,17 1,13 1,5"/></svg>'; }
+function renderHive() {
+  const p = state.players[sel], today = dayNum(), c = counts(p, today);
+  $('v-hive').innerHTML = '<div class="title-row">' + beeSVG(avOf(sel), 'happy') + '<h1>' + esc(pname(sel)) + "'s hive</h1></div>" + segHTML()
+    + '<p class="lede">Every cell is one word. A cell fills with honey when the word is spelled right on the first try on two different days. <b>' + c.mastered + '</b> of ' + c.total + ' filled so far.</p>'
+    + '<div class="legend"><span>' + swatch('s0') + 'not met yet</span><span>' + swatch('s1') + 'just started</span><span>' + swatch('s2') + 'nearly there</span><span>' + swatch('s3') + 'mastered</span><span>' + swatch('s1 trouble') + 'missed last time</span></div>'
+    + '<div class="sheet"><div class="combs">' + patternStats(p).map(function (s) {
+      return '<div class="comb"><div class="comb-head"><h3>' + esc(s.name) + '</h3><span>' + s.mastered + ' of ' + s.total + '</span></div>' + combSVG(p, PAT_BY_ID[s.id]) + '<p class="hexinfo" id="info-' + s.id + '">Tap a cell to see its word.</p></div>';
+    }).join('') + '</div></div>';
+}
+function hexInfo(id) {
+  const w = WORD_BY_ID[id], e = state.players[sel].words[id], el = $('info-' + w.pat), today = dayNum();
+  document.querySelectorAll('.hx.on').forEach(function (h) { h.classList.remove('on'); });
+  const cell = document.querySelector('[data-hex="' + id + '"]'); if (cell) cell.classList.add('on');
+  if (!e) { el.textContent = 'Not met yet. It will turn up in a round.'; return; }
+  const status = e.b >= MASTERED ? 'mastered' : e.b === 3 ? 'nearly there' : e.w ? 'missed last time' : 'just started';
+  el.innerHTML = '<b>' + esc(w.w) + '</b>: ' + status + ', next review ' + whenText(e.d - today) + '.';
+}
+
+/* ----- honey shelf ----- */
+function renderShelf() {
+  const p = state.players[sel], st = unlockStats(p);
+  const got = BADGES.filter(function (b) { return p.bd[b.id]; }).length;
+  const tile = function (b) {
+    if (p.bd[b.id]) return '<div class="bcard">' + badgeSVG(b) + '<b>' + b.name + '</b><small>' + b.need + '</small></div>';
+    const have = Math.min(statVal(st, b.key), b.goal);
+    return '<div class="bcard locked">' + badgeSVG(b) + '<b>' + b.name + '</b><small>' + b.need + '</small>'
+      + '<div class="bar" role="img" aria-label="' + have + ' of ' + b.goal + '"><i class="mid" style="width:' + Math.round(100 * have / b.goal) + '%"></i></div><small>' + have + ' of ' + b.goal + '</small></div>';
+  };
+  $('v-shelf').innerHTML = '<div class="title-row">' + beeSVG(avOf(sel), 'happy') + '<h1>' + esc(pname(sel)) + "'s Honey Shelf</h1></div>" + segHTML()
+    + '<p class="lede">Every badge is something you did, and each one is worth a honey drop. Grey badges are still waiting, and the bar shows how close you are.</p>'
+    + '<div class="bank">' + dropSVG() + '<b>' + badgeBank(p).left + '</b><span>honey ' + (badgeBank(p).left === 1 ? 'drop' : 'drops') + ' to spend on bees</span><button type="button" class="link" data-bees="' + sel + '">Trade for a bee</button></div>'
+    + '<div class="total"><b>' + got + ' of ' + BADGES.length + '</b><div class="bar" role="img" aria-label="' + got + ' of ' + BADGES.length + ' badges earned"><i class="mid" style="width:' + Math.round(100 * got / BADGES.length) + '%"></i></div></div>'
+    + BADGE_GROUPS.map(function (g) {
+      const n = g.items.filter(function (b) { return p.bd[b.id]; }).length;
+      return '<div class="sheet shelf"><div class="shelf-head"><h2>' + g.title + '</h2><span>' + n + ' of ' + g.items.length + '</span></div><p class="small soft">' + g.blurb + '</p><div class="badges">' + g.items.map(tile).join('') + '</div></div>';
+    }).join('');
+}
+
+/* ----- grown-ups ----- */
+function renderGrown() {
+  const p = state.players[sel], today = dayNum(), c = counts(p, today);
+  const stats = patternStats(p).sort(function (x, y) { return (x.acc === null ? 2 : x.acc) - (y.acc === null ? 2 : y.acc); });
+  const rows = stats.map(function (s) {
+    const pct = s.acc === null ? 0 : Math.round(s.acc * 100);
+    const cls = pct < 60 ? 'lo' : pct < 85 ? 'mid' : 'hi';
+    return '<div class="prow"><span class="pname">' + esc(s.name) + '</span>'
+      + '<div class="bar" role="img" aria-label="' + (s.tries ? pct + ' percent right on the first try' : 'no tries yet') + '"><i class="' + cls + '" style="width:' + pct + '%"></i></div>'
+      + '<span class="num">' + (s.tries ? pct + '% first try (' + s.r + ' of ' + s.tries + ')' : 'no tries yet') + '</span></div>';
+  }).join('');
+  const trouble = WORDS.filter(function (w) { return p.words[w.id] && p.words[w.id].w > 0; })
+    .sort(function (x, y) { return p.words[y.id].w - p.words[x.id].w; }).slice(0, 24);
+  $('v-grown').innerHTML = '<h1>For grown-ups</h1>' + segHTML()
+    + '<div class="score"><div class="stat"><b>' + roundsOf(p) + '</b><span>rounds played</span></div><div class="stat"><b>' + c.mastered + '</b><span>words mastered</span></div><div class="stat"><b>' + (c.seen - c.mastered) + '</b><span>still learning</span></div><div class="stat"><b>' + (c.total - c.seen) + '</b><span>not met yet</span></div></div>'
+    + '<div class="panel"><h2>Patterns, weakest first</h2><p class="lede small">The share of words in each pattern spelled right on the first try. New words lean toward the two weakest patterns once there are at least four tries to go on.</p><div>' + rows + '</div></div>'
+    + '<div class="panel"><h2>Words missed</h2>' + (trouble.length
+        ? '<div class="chips">' + trouble.map(function (w) { const e = p.words[w.id]; return '<span class="chip ' + (e.b >= MASTERED ? 'ok' : 'bad') + '">' + esc(w.w) + ' ×' + e.w + '</span>'; }).join('') + '</div><p class="small soft">The number is how many times the word was missed. Green means it has since been mastered.</p>'
+        : '<p class="soft">Nothing missed yet. Missed words will be listed here with how many times each was missed.</p>') + '</div>'
+    + '<div class="panel"><h2>How words are scheduled</h2><ol class="plain small"><li>A new word spelled right on the first try comes back in a week.</li><li>Right again, it comes back in two weeks and counts as mastered. After that, once a month.</li><li>A miss sends the word back to tomorrow, and it has to work its way up again.</li><li>Only the first try counts. Getting it on the second try is still a miss.</li></ol></div>'
+    + '<div class="panel"><h2>Honey drops and bees</h2><p class="small">Every finished round earns 1 honey drop, and every badge earns 1 more. Badges are never taken away. A bee costs 2 to 8 drops, and all ' + AVATARS.filter(function (a) { return a.cost; }).length + ' cost ' + AVATARS.reduce(function (n, a) { return n + (a.cost || 0); }, 0) + '. ' + esc(pname(sel)) + ' has earned ' + badgeBank(p).rounds + ' from rounds and ' + badgeBank(p).badges + ' from badges, has traded ' + badgeBank(p).spent + ', and has ' + badgeBank(p).left + ' to spend.</p></div>'
+    + '<div class="panel"><h2>Move progress to another device</h2>'
+      + '<ol class="plain small"><li>On the device that has the progress, press Make a transfer code, then copy it.</li><li>Send the code to the other device, for example in a message, an email or a shared note.</li><li>On the other device, paste it into the box below and press Bring in progress.</li></ol>'
+      + '<p class="small soft">One code carries everyone on this device. Nothing gets overwritten: spellers are matched by name, and for each word the more recent result is kept, so codes can go in either direction.</p>'
+      + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="xfer-make">Make a transfer code</button>'
+        + (xfer.code ? '<button type="button" class="btn quiet" id="xfer-copy">Copy the code</button>' + (canShare() ? '<button type="button" class="btn quiet" id="xfer-share">Send it</button>' : '') : '')
+        + '<span class="small soft" id="xfer-out-status" aria-live="polite">' + esc(xfer.outMsg) + '</span></div>'
+      + (xfer.code ? '<div class="field"><label for="xfer-out">Transfer code, ' + xfer.code.length + ' characters</label><textarea id="xfer-out" class="code" rows="4" readonly>' + esc(xfer.code) + '</textarea></div>' : '')
+      + '<div class="field"><label for="xfer-in">Paste a code from another device</label><textarea id="xfer-in" class="code" rows="4" autocomplete="off" autocapitalize="none" spellcheck="false"></textarea></div>'
+      + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="xfer-load">Bring in progress</button><span class="small" id="xfer-in-status" aria-live="polite">' + xfer.inMsg + '</span></div>'
+    + '</div>'
+    + '<div class="panel"><h2>Settings</h2>'
+      + '<form class="row" id="g-profile"><div class="field"><label for="g-name">Name</label><input type="text" id="g-name" maxlength="20" autocomplete="off" value="' + esc(p.name) + '"></div>'
+      + '<div class="field"><label for="g-grade">Word level</label><select id="g-grade">' + gradeOptions(p.grade) + '</select></div><button type="submit" class="btn quiet">Save</button></form>'
+      + '<div class="row"><div class="field"><label for="set-len">Words in a round (everyone)</label><select id="set-len">' + [8, 12, 16].map(function (n) { return '<option value="' + n + '"' + (n === state.settings.len ? ' selected' : '') + '>' + n + ' words</option>'; }).join('') + '</select></div>'
+      + '<button type="button" class="btn quiet" id="voice-test"' + (synth ? '' : ' disabled') + '>Test the voice</button></div>'
+      + '<label class="check" for="set-flash"><input type="checkbox" id="set-flash"' + (flashMode() ? ' checked' : '') + (synth ? '' : ' disabled') + '><span>Show each word for a moment instead of speaking it.' + (synth ? ' Use this if the voice is missing or hard to understand.' : ' This device has no voice, so this is on.') + '</span></label>'
+      + '<label class="check" for="set-sound"><input type="checkbox" id="set-sound"' + (state.settings.sound !== false ? ' checked' : '') + '><span>Play sounds: a ding for each correct answer, and a fanfare when a badge is earned or a bee is traded for.</span></label>'
+      + '<label class="check" for="set-keys"><input type="checkbox" id="set-keys"' + (state.settings.keys !== false ? ' checked' : '') + '><span>Play a quiet click for each letter typed.</span></label>'
+      + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="ding-test">Test the ding</button><button type="button" class="btn quiet" id="fanfare-test">Test the fanfare</button><span class="small soft" id="ding-status" aria-live="polite"></span></div>'
+      + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="fly-test">Test the animation</button><span id="test-bee">' + beeSVG(avOf(sel), 'cheer') + '</span><span class="small soft" id="fly-status" aria-live="polite">Plays the end-of-round flight with ' + esc(pname(sel)) + "'s bee.</span></div>"
+      + '<p class="small soft" id="sync">' + syncText() + '</p>'
+      + (sel === 't' ? '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="unlock-all">Give every bee and badge</button><span class="small soft">Test account only, so you can see them all. Erasing progress takes them away again.</span></div>' : '')
+      + (confirmReset
+        ? '<div class="confirm"><p><b>Erase all of ' + esc(pname(sel)) + "'s progress?</b> This cannot be undone.</p><div class=\"row\"><button type=\"button\" class=\"btn danger\" id=\"reset-yes\">Erase progress</button><button type=\"button\" class=\"btn quiet\" id=\"reset-no\">Keep it</button></div></div>"
+        : '<div><button type="button" class="link" id="reset-ask">Erase ' + esc(pname(sel)) + "'s progress</button></div>")
+    + '</div>';
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', function (ev) {
+  const t = ev.target.closest('[data-go],[data-start],[data-hive],[data-edit],[data-sel],[data-hex],[data-bees],[data-bee],[data-buy-ask],[data-buy],[data-buy-no],[data-shelf],#unlock-all,#xfer-make,#xfer-copy,#xfer-share,#xfer-load,#fly-test,#hear,#hear-sent,#hear-slow,#peek,#quit,#voice-test,#ding-test,#fanfare-test,#reset-ask,#reset-yes,#reset-no');
+  if (!t) return;
+  const it = round ? round.queue[round.i] : null;
+  if (t.dataset.go) { confirmReset = false; confirmBee = ''; return show(t.dataset.go); }
+  if (t.dataset.start) return startRound(t.dataset.start);
+  if (t.dataset.hive) { sel = t.dataset.hive; return show('hive'); }
+  if (t.dataset.edit) { editing[t.dataset.edit] = true; return renderHome(); }
+  if (t.dataset.sel) { sel = t.dataset.sel; confirmReset = false; return show(view); }
+  if (t.dataset.hex) return hexInfo(t.dataset.hex);
+  if (t.dataset.bees) { sel = t.dataset.bees; confirmBee = ''; return show('bees'); }
+  if (t.dataset.shelf) { sel = t.dataset.shelf; return show('shelf'); }
+  if (t.dataset.bee) {
+    const p = state.players[sel], a = AV_BY_ID[t.dataset.bee];
+    if (a && ownsBee(p, a)) { p.av = a.id; p.pt = Date.now(); confirmBee = ''; savePlayer(sel); ding(false); renderBees(); }
+    return;
+  }
+  if (t.dataset.buyAsk) { confirmBee = t.dataset.buyAsk; return renderBees(); }
+  if (t.dataset.buyNo) { confirmBee = ''; return renderBees(); }
+  if (t.dataset.buy) {
+    const p = state.players[sel], a = AV_BY_ID[t.dataset.buy];
+    confirmBee = '';
+    if (a && buyBee(p, a)) {
+      p.av = a.id; p.pt = Date.now(); savePlayer(sel);
+      renderBees(); window.scrollTo(0, 0);
+      playSound('fanfare'); flyBee(sel, $('pick-bee'));
+    } else renderBees();
+    return;
+  }
+  if (t.id === 'xfer-make') {
+    makeCode().then(function (code) {
+      xfer.code = code;
+      xfer.outMsg = code ? '' : 'Nobody on this device has a name yet, so there is nothing to move.';
+      if (view === 'grown') { renderGrown(); const o = $('xfer-out'); if (o) { o.focus(); o.select(); } }
+    });
+    return;
+  }
+  if (t.id === 'xfer-copy') {
+    const done = function (msg) { xfer.outMsg = msg; const el = $('xfer-out-status'); if (el) el.textContent = msg; };
+    const byHand = function () { const o = $('xfer-out'); if (o) { o.focus(); o.select(); } done('Could not copy it for you. The code is selected, so copy it by hand.'); };
+    try { navigator.clipboard.writeText(xfer.code).then(function () { done('Copied.'); }, byHand); } catch (e) { byHand(); }
+    return;
+  }
+  if (t.id === 'xfer-share') { try { navigator.share({ title: 'Honeycomb Spelling transfer code', text: xfer.code }).catch(function () {}); } catch (e) { /* not available */ } return; }
+  if (t.id === 'xfer-load') {
+    const box = $('xfer-in'), status = $('xfer-in-status');
+    if (!box.value.trim()) { box.focus(); return; }
+    xfer.inMsg = ''; status.textContent = '';
+    readCode(box.value).then(function (list) {
+      const res = importPlayers(list);
+      const ok = res.filter(function (r) { return r.ok; }), no = res.filter(function (r) { return !r.ok; });
+      xfer.inMsg = (ok.length ? '<span class="msg-ok">Brought in ' + ok.map(function (r) { return esc(r.name) + ' (' + r.words + (r.words === 1 ? ' word' : ' words') + ')'; }).join(', ') + '.</span> ' : '')
+        + (no.length ? '<span class="msg-no">No free place for ' + no.map(function (r) { return esc(r.name); }).join(', ') + '. Both speller places here are taken by other names.</span>' : '')
+        + (!res.length ? '<span class="msg-no">That code has no spellers in it.</span>' : '');
+      if (view === 'grown') renderGrown();
+    }, function (err) {
+      status.innerHTML = '<span class="msg-no">' + (err && err.message === 'shape' ? 'That does not look like a transfer code. Copy the whole code, starting with HC, and try again.'
+        : err && err.message === 'old' ? 'This browser is too old to read that code.'
+        : 'That code is incomplete or damaged. Copy it again from the other device.') + '</span>';
+    });
+    return;
+  }
+  if (t.id === 'fly-test') {
+    if (!flyBee(sel, $('test-bee'))) $('fly-status').textContent = 'This device is set to reduce motion, so the flight is skipped.';
+    return;
+  }
+  if (t.id === 'unlock-all') {
+    const p = state.players.t, now = Date.now();
+    AVATARS.forEach(function (a) { if (a.cost) p.un[a.id] = p.un[a.id] || now; });
+    BADGES.forEach(function (b) { p.bd[b.id] = p.bd[b.id] || now; });
+    savePlayer('t'); sel = 't'; return show('shelf');
+  }
+  if (t.id === 'hear' && it) { if (flashMode()) flashWord(false); else say([it.w.w]); if (!round.flashing) $('answer').focus(); return; }
+  if (t.id === 'hear-sent' && it) { say([it.w.s]); return $('answer').focus(); }
+  if (t.id === 'hear-slow' && it) { say([it.w.w], 0.55); return $('answer').focus(); }
+  if (t.id === 'peek' && it) return flashWord(true);
+  if (t.id === 'quit') { round = null; return show('home'); }
+  if (t.id === 'voice-test') return say(['Spell the word: honeycomb.']);
+  if (t.id === 'ding-test' || t.id === 'fanfare-test') {
+    playSound(t.id === 'ding-test' ? 'first' : 'fanfare', true).then(function (res) {
+      const el = $('ding-status'); if (!el) return;
+      el.textContent = res === 'played'
+        ? 'The sound was sent to the speaker. If you heard nothing, turn up the media volume.'
+        : 'This device blocked the sound. Try opening the page in a web browser instead of the app.';
+    });
+    return;
+  }
+  if (t.id === 'reset-ask') { confirmReset = true; return renderGrown(); }
+  if (t.id === 'reset-no') { confirmReset = false; return renderGrown(); }
+  if (t.id === 'reset-yes') {
+    const p = state.players[sel];
+    state.players[sel] = playerFrom(sel, { name: p.name, grade: p.grade, av: p.av, pt: p.pt, rz: Date.now() });
+    confirmReset = false; savePlayer(sel); return renderGrown();
+  }
+});
+document.addEventListener('keydown', function (ev) {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.dataset && ev.target.dataset.hex) { ev.preventDefault(); hexInfo(ev.target.dataset.hex); }
+});
+document.addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  const f = ev.target;
+  if (f.id === 'answer-form') return onCheck();
+  if (f.dataset.setup) {
+    const id = f.dataset.setup, name = $('name-' + id).value.trim();
+    if (!name) { $('name-' + id).focus(); return; }
+    const p = state.players[id];
+    p.name = name.slice(0, 20); p.grade = clampInt($('grade-' + id).value, 4, 6); p.pt = Date.now();
+    editing[id] = false; savePlayer(id); return renderHome();
+  }
+  if (f.id === 'g-profile') {
+    const p = state.players[sel], name = $('g-name').value.trim();
+    if (name) p.name = name.slice(0, 20);
+    p.grade = clampInt($('g-grade').value, 4, 6); p.pt = Date.now();
+    savePlayer(sel); return renderGrown();
+  }
+});
+document.addEventListener('input', function (ev) {
+  if (ev.target.id !== 'answer' || ev.target.readOnly || !round) return;
+  keySound(typeof ev.inputType === 'string' && ev.inputType.indexOf('delete') === 0);
+});
+document.addEventListener('change', function (ev) {
+  if (ev.target.id === 'set-len') { state.settings.len = normSettings({ len: ev.target.value }).len; saveSettings(); }
+  if (ev.target.id === 'set-flash') { state.settings.flash = ev.target.checked; saveSettings(); }
+  if (ev.target.id === 'set-keys') { state.settings.keys = ev.target.checked; saveSettings(); if (ev.target.checked) keySound(false); }
+  if (ev.target.id === 'set-sound') { state.settings.sound = ev.target.checked; saveSettings(); if (ev.target.checked) ding(true); }
+});
+
+/* ---------- start ---------- */
+loadLocal();
+if (IDS.filter(function (id) { return checkBadges(state.players[id]).length; }).length) saveLocal();
+$('brand-bee').innerHTML = beeSVG(AV_BY_ID.zip, 'happy');
+show('home');
+initDb();
+</script>
+
+</body>
+</html>
