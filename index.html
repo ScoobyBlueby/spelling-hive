@@ -33,6 +33,8 @@
   --miss: #BF2F2A;
   --miss-wash: #FFDEDA;
   --focus: #2456E0;
+  --alt: #A9DBFF;
+  --on-alt: #221C45;
 
   --display: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --body: ui-rounded, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -49,7 +51,7 @@
     --ground: #161B3D; --cloud: rgba(255, 255, 255, .05); --surface: #272F60; --ink: #F4F1FF; --ink-soft: #B7B4D8;
     --outline: #070918; --line: #3F4885; --pip: rgba(244, 241, 255, .22);
     --honey: #FFC533; --honey-deep: #FFD777; --honey-wash: #4A3A12; --on-honey: #221C45; --pop: #FF8DB8;
-    --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF;
+    --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF; --alt: #4666B8; --on-alt: #F4F1FF;
     color-scheme: dark;
   }
 }
@@ -57,7 +59,7 @@
   --ground: #161B3D; --cloud: rgba(255, 255, 255, .05); --surface: #272F60; --ink: #F4F1FF; --ink-soft: #B7B4D8;
   --outline: #070918; --line: #3F4885; --pip: rgba(244, 241, 255, .22);
   --honey: #FFC533; --honey-deep: #FFD777; --honey-wash: #4A3A12; --on-honey: #221C45; --pop: #FF8DB8;
-  --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF;
+  --good: #6BE0A5; --good-wash: #15402D; --miss: #FF958C; --miss-wash: #4D2422; --focus: #9DBBFF; --alt: #4666B8; --on-alt: #F4F1FF;
   color-scheme: dark;
 }
 
@@ -100,6 +102,7 @@ button, input, select { font: inherit; color: inherit; }
 .btn:hover { filter: brightness(1.06); }
 .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--outline); }
 .btn.quiet { background: var(--surface); color: var(--ink); font-size: var(--t-m); padding: 8px 18px; }
+.btn.alt { background: var(--alt); color: var(--on-alt); }
 .btn.danger { background: var(--miss); color: var(--surface); }
 .btn:disabled { opacity: .5; cursor: default; }
 .link { background: none; border: 0; padding: 4px 0; color: var(--ink-soft); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: var(--t-s); }
@@ -154,6 +157,15 @@ button, input, select { font: inherit; color: inherit; }
 .hear:active .hear-top { transform: translateY(6px); }
 .hear-ico path { fill: var(--on-honey); stroke: var(--on-honey); }
 .hear-ico .wave { fill: none; }
+.build { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 8px 10px; width: 100%; }
+.part { display: flex; flex-direction: column; align-items: center; min-width: 3rem; background: var(--honey-wash); border: 3px solid var(--outline); border-radius: 14px; box-shadow: 0 4px 0 var(--outline); padding: 4px 14px 5px; }
+.part b { font-family: var(--letters); font-weight: 700; font-size: clamp(1.25rem, 5.5vw, 1.75rem); line-height: 1.3; }
+.part small { font-size: var(--t-xs); font-weight: 700; color: var(--ink-soft); line-height: 1.2; }
+.part.ask { background: var(--surface); border-style: dashed; box-shadow: none; }
+.part.done { background: var(--honey); color: var(--on-honey); }
+.plus { font-family: var(--display); font-weight: 700; font-size: 1.75rem; line-height: 2.4rem; }
+.build .link { flex-basis: 100%; }
+.pc-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
 .aux { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
 .talk { display: flex; align-items: center; gap: 18px; width: 100%; max-width: 34rem; }
 #play-bee { width: 88px; flex: none; }
@@ -378,6 +390,7 @@ ol.plain { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column
           </svg>
           <span id="hear-label">Hear the word</span>
         </button>
+        <div class="build" id="build" hidden></div>
         <div class="aux" id="aux">
           <button type="button" class="link" id="hear-sent">Hear the sentence</button>
           <button type="button" class="link" id="hear-slow">Say it slower</button>
@@ -904,6 +917,128 @@ function badgeSVG(b) {
     + '<text x="50" y="79.6" text-anchor="middle" font-size="12.5" fill="' + BK + '">' + b.plate + '</text></svg>';
 }
 
+/* ---------- Word Builder: join the parts and type the word. "parts|answer|grade|code|optional note"
+   Codes: D double the last letter, N do not double, E drop the silent e, K keep the e, Y change y to i, Z keep the y, J just join. ---------- */
+const BUILD_RAW = [
+'hop+ing|hopping|4|D', 'hop+ed|hopped|4|D', 'stop+ed|stopped|4|D', 'stop+ing|stopping|4|D', 'swim+ing|swimming|4|D', 'run+ing|running|4|D', 'run+er|runner|4|D', 'plan+ed|planned|4|D',
+'drop+ed|dropped|4|D', 'grab+ed|grabbed|4|D', 'big+er|bigger|4|D', 'big+est|biggest|4|D', 'ship+ing|shipping|4|D', 'sit+ing|sitting|4|D', 'sad+est|saddest|4|D', 'win+er|winner|4|D',
+'begin+ing|beginning|5|D|The loud syllable is the last one (be-GIN), so double the n.',
+'forgot+en|forgotten|5|D|The loud syllable is the last one (for-GOT), so double the t.',
+'admit+ed|admitted|5|D|The loud syllable is the last one (ad-MIT), so double the t.',
+'permit+ed|permitted|5|D|The loud syllable is the last one (per-MIT), so double the t.',
+'control+ed|controlled|5|D|The loud syllable is the last one (con-TROL), so double the l.',
+'equip+ed|equipped|5|D|The loud syllable is the last one (e-QUIP), so double the p.',
+'occur+ed|occurred|6|D|The loud syllable is the last one (oc-CUR), so double the r.',
+'refer+ed|referred|6|D|The loud syllable is the last one (re-FER), so double the r.',
+'commit+ed|committed|6|D|The loud syllable is the last one (com-MIT), so double the t.',
+'prefer+ed|preferred|6|D|The loud syllable is the last one (pre-FER), so double the r.',
+'regret+ed|regretted|6|D|The loud syllable is the last one (re-GRET), so double the t.',
+'jump+ing|jumping|4|N|Two consonants at the end (m and p), so nothing doubles.',
+'help+ed|helped|4|N|Two consonants at the end (l and p), so nothing doubles.',
+'rain+ing|raining|4|N|Two vowels before the n (a and i), so nothing doubles.',
+'clean+er|cleaner|4|N|Two vowels before the n (e and a), so nothing doubles.',
+'sad+ly|sadly|4|N|The suffix starts with a consonant, so nothing doubles.',
+'open+ing|opening|5|N|The loud syllable is the first one (O-pen), so the n stays single.',
+'visit+ed|visited|5|N|The loud syllable is the first one (VIS-it), so the t stays single.',
+'happen+ed|happened|5|N|The loud syllable is the first one (HAP-pen), so the n stays single.',
+'ship+ment|shipment|5|N|The suffix starts with a consonant, so nothing doubles.',
+'equip+ment|equipment|6|N|The suffix starts with a consonant, so nothing doubles.',
+'commit+ment|commitment|6|N|The suffix starts with a consonant, so nothing doubles.',
+'hope+ing|hoping|4|E', 'make+ing|making|4|E', 'write+ing|writing|4|E', 'shine+ing|shining|4|E', 'use+ing|using|4|E', 'care+ing|caring|4|E', 'fame+ous|famous|4|E', 'amaze+ing|amazing|4|E',
+'smile+ing|smiling|4|E', 'bake+ed|baked|4|E', 'dance+er|dancer|4|E', 'scare+y|scary|4|E|The suffix y acts like a vowel, so drop the e.',
+'dine+ing|dining|5|E', 'arrive+ing|arriving|5|E', 'nerve+ous|nervous|5|E', 'love+able|lovable|5|E', 'store+age|storage|5|E', 'create+ive|creative|5|E', 'value+able|valuable|5|E', 'excite+ing|exciting|5|E',
+'educate+ion|education|5|E', 'confuse+ion|confusion|5|E', 'argue+ing|arguing|6|E', 'believe+able|believable|6|E', 'advertise+ing|advertising|6|E',
+'true+ly|truly|6|E|A rule-breaker: true drops its e even before a consonant.',
+'argue+ment|argument|6|E|A rule-breaker: argue drops its e even before a consonant.',
+'care+ful|careful|4|K', 'use+ful|useful|4|K', 'safe+ly|safely|4|K', 'hope+ful|hopeful|5|K', 'excite+ment|excitement|5|K', 'amaze+ment|amazement|5|K', 'lone+ly|lonely|5|K',
+'notice+able|noticeable|6|K|The e stays so the c keeps its soft sound.',
+'change+able|changeable|6|K|The e stays so the g keeps its soft sound.',
+'carry+ed|carried|4|Y', 'city+es|cities|4|Y', 'family+es|families|4|Y', 'easy+er|easier|4|Y', 'hurry+ed|hurried|4|Y', 'worry+ed|worried|4|Y', 'study+es|studies|4|Y', 'reply+ed|replied|4|Y',
+'funny+est|funniest|4|Y', 'try+ed|tried|4|Y', 'happy+er|happier|4|Y', 'happy+ness|happiness|5|Y', 'beauty+ful|beautiful|5|Y', 'country+es|countries|5|Y', 'early+est|earliest|5|Y', 'heavy+est|heaviest|5|Y',
+'deny+ed|denied|5|Y', 'supply+ed|supplied|5|Y', 'busy+ness|business|6|Y', 'lonely+ness|loneliness|6|Y', 'plenty+ful|plentiful|6|Y', 'mercy+ful|merciful|6|Y',
+'study+ing|studying|4|Z|Keep the y before -ing. Two i\'s in a row would look wrong.',
+'try+ing|trying|4|Z|Keep the y before -ing. Two i\'s in a row would look wrong.',
+'carry+ing|carrying|5|Z|Keep the y before -ing. Two i\'s in a row would look wrong.',
+'hurry+ing|hurrying|5|Z|Keep the y before -ing. Two i\'s in a row would look wrong.',
+'play+ed|played|4|Z|A vowel comes before the y (a), so the y stays.',
+'stay+ed|stayed|4|Z|A vowel comes before the y (a), so the y stays.',
+'enjoy+able|enjoyable|4|Z|A vowel comes before the y (o), so the y stays.',
+'re+write|rewrite|4|J', 'pre+view|preview|4|J', 'dis+agree|disagree|4|J', 'un+usual|unusual|4|J', 'non+fiction|nonfiction|4|J',
+'dis+appear|disappear|4|J|The prefix dis has one s, and appear keeps both its p\'s.',
+'im+possible|impossible|5|J', 'sub+marine|submarine|5|J', 'un+comfort+able|uncomfortable|5|J', 'mis+understand|misunderstand|5|J',
+'mis+spell|misspell|5|J|Both s\'s stay: one from mis, one from spell.',
+'un+natural|unnatural|5|J|Both n\'s stay: one from un, one from natural.',
+'dis+appoint|disappoint|5|J|The prefix dis has one s, and appoint keeps both its p\'s.',
+'il+legal|illegal|5|J|Both l\'s stay: one from il, one from legal.',
+'im+mature|immature|5|J|Both m\'s stay: one from im, one from mature.',
+'ir+regular|irregular|6|J|Both r\'s stay: one from ir, one from regular.',
+'un+necessary|unnecessary|6|J|Both n\'s stay: one from un, one from necessary.',
+'dis+satisfied|dissatisfied|6|J|Both s\'s stay: one from dis, one from satisfied.',
+'over+react|overreact|6|J|Both r\'s stay: one from over, one from react.',
+'inter+national|international|6|J',
+'comfort+able|comfortable|4|J', 'act+ion|action|4|J', 'direct+ion|direction|4|J', 'collect+ion|collection|4|J', 'differ+ent|different|4|J', 'import+ant|important|4|J',
+'reason+able|reasonable|5|J', 'depend+able|dependable|5|J', 'remark+able|remarkable|5|J', 'accept+able|acceptable|5|J', 'invent+ion|invention|5|J', 'magic+ian|magician|5|J', 'music+ian|musician|5|J',
+'differ+ence|difference|5|J', 'govern+ment|government|5|J|Keep the n at the end of govern.',
+'discuss+ion|discussion|6|J|Both s\'s from discuss stay.', 'express+ion|expression|6|J|Both s\'s from express stay.',
+'electric+ian|electrician|6|J', 'appear+ance|appearance|6|J', 'perform+ance|performance|6|J',
+'tele+phone|telephone|4|J', 'trans+port|transport|4|J', 'in+spect|inspect|4|J', 'pre+dict|predict|4|J', 'e+rupt|erupt|4|J',
+'photo+graph|photograph|5|J', 'auto+graph|autograph|5|J', 'tele+scope|telescope|5|J', 'micro+scope|microscope|5|J', 'port+able|portable|5|J', 'con+struct|construct|5|J',
+'inter+rupt|interrupt|5|J|Both r\'s stay: one from inter, one from rupt.',
+'in+struct+ion|instruction|6|J', 'bio+graph+y|biography|6|J', 'geo+graph+y|geography|6|J', 'aud+ible|audible|6|J', 'spect+ator|spectator|6|J'
+];
+const BUILD_NOTE = {
+  D: 'Short vowel, then one consonant at the end: double it before a suffix that starts with a vowel.',
+  E: 'Drop the silent e: the suffix starts with a vowel.',
+  K: 'Keep the e: the suffix starts with a consonant.',
+  Y: 'Change the y to i before the suffix.',
+  J: 'Nothing changes. Just join the parts.'
+};
+const BUILD_CATS = [['D', 'Doubling the last letter'], ['E', 'Silent e: drop it or keep it'], ['Y', 'The letter y: change it or keep it'], ['J', 'Just joining the parts']];
+const BUILD_HINT = {
+  D: 'Look at the end of the first part. Does its last letter need doubling?',
+  E: 'Look at the silent e. Does it stay or go?',
+  Y: 'Look at the y. Does it change or stay?',
+  J: 'Do the parts change at all when they join?'
+};
+const PART_MEANS = { re: 'again', pre: 'before', dis: 'not', un: 'not', non: 'not', im: 'not', il: 'not', ir: 'not', mis: 'wrongly', sub: 'under', over: 'too much', inter: 'between',
+  tele: 'far', phone: 'sound', trans: 'across', port: 'carry', spect: 'look', dict: 'say', rupt: 'break', photo: 'light', graph: 'write', auto: 'self', scope: 'look', micro: 'small',
+  con: 'together', struct: 'build', bio: 'life', geo: 'earth', aud: 'hear', e: 'out', 'in': 'in',
+  ful: 'full of', ness: 'state of', ment: 'result of', able: 'can be', ible: 'can be', est: 'most', ous: 'full of', ion: 'act of', ian: 'person who', ator: 'one who' };
+const BUILD = BUILD_RAW.map(function (s) {
+  const f = s.split('|'), parts = f[0].split('+'), code = f[3];
+  return { id: f[0], parts: parts, ans: f[1], g: +f[2], code: code, cat: code === 'N' ? 'D' : code === 'K' ? 'E' : code === 'Z' ? 'Y' : code,
+    changes: code === 'D' || code === 'E' || code === 'Y', first: parts[0], last: parts[parts.length - 1], note: f[4] || BUILD_NOTE[code] };
+});
+const BUILD_LEN = 12;
+const BUILD_MAX_ROW = 2;           /* Word Builder rounds allowed in a row before a spelling round must be finished */
+function builderLocked(p) { return p.bs >= BUILD_MAX_ROW; }
+/* picks a round: leans toward the weakest joining rule, and often follows an item with its opposite (hop + ing, then jump + ing) */
+function buildPicks(p, n, rnd) {
+  rnd = rnd || Math.random;
+  let pool = BUILD.filter(function (b) { return b.g <= p.grade; });
+  if (pool.length < n) pool = BUILD.slice();
+  const weight = {}, byCat = {}, used = {}, picks = [];
+  BUILD_CATS.forEach(function (c) { const s = p.wb[c[0]]; weight[c[0]] = s && s[1] >= 4 ? 1 + 2.5 * (1 - s[0] / s[1]) : 1.6; byCat[c[0]] = []; });
+  pool.forEach(function (b) { byCat[b.cat].push(b); });
+  const free = function (list) { return list.filter(function (b) { return !used[b.id]; }); };
+  for (let guard = 0; picks.length < n && guard < 500; guard++) {
+    const cats = BUILD_CATS.map(function (c) { return c[0]; }).filter(function (c) { return free(byCat[c]).length; });
+    if (!cats.length) break;
+    let total = 0; cats.forEach(function (c) { total += weight[c]; });
+    let r = rnd() * total, cat = cats[cats.length - 1];
+    for (let i = 0; i < cats.length; i++) { r -= weight[cats[i]]; if (r <= 0) { cat = cats[i]; break; } }
+    const avail = free(byCat[cat]), b = avail[Math.floor(rnd() * avail.length)];
+    used[b.id] = 1; picks.push(b);
+    if (picks.length < n && cat !== 'J' && rnd() < 0.65) {
+      const opposite = free(byCat[cat]).filter(function (x) { return x.changes !== b.changes; });
+      const close = opposite.filter(function (x) { return x.first === b.first || x.last === b.last; });
+      const from = close.length ? close : opposite;
+      if (from.length) { const c2 = from[Math.floor(rnd() * from.length)]; used[c2.id] = 1; picks.push(c2); }
+    }
+  }
+  return picks;
+}
+
 /* ---------- pure logic ---------- */
 const IV = [0, 1, 3, 7, 14, 30];           // days until the next review, by box
 const MASTERED = 4;                         // box 4 and up counts as mastered
@@ -938,21 +1073,25 @@ function normP(p) {
   const csrc = p.rc && typeof p.rc === 'object' ? p.rc : {};
   const rc = {};
   Object.keys(csrc).sort().slice(0, 16).forEach(function (k) { if (/^[a-z0-9]{1,12}$/.test(k) && int(csrc[k]) > 0) rc[k] = Math.min(100000, int(csrc[k])); });
+  const wsrc = p.wb && typeof p.wb === 'object' ? p.wb : {};
+  const wb = {};
+  BUILD_CATS.forEach(function (c) { const v = wsrc[c[0]]; if (Array.isArray(v)) { const n = Math.min(100000, Math.max(0, int(v[1]))), r = Math.min(n, Math.max(0, int(v[0]))); if (n) wb[c[0]] = [r, n]; } });
   const bsrc = p.bd && typeof p.bd === 'object' ? p.bd : {};
   const bd = {};
   Object.keys(bsrc).sort().forEach(function (k) { if (own(BADGE_BY_ID, k) && int(bsrc[k]) >= rz && int(bsrc[k]) > 0) bd[k] = int(bsrc[k]); });
-  return { name: String(p.name || '').slice(0, 20), grade: clampInt(p.grade || 5, 4, 6), av: typeof p.av === 'string' && own(AV_BY_ID, p.av) ? p.av : '', pt: int(p.pt), rz: rz, last: int(p.last), streak: int(p.streak), best: int(p.best), perfect: int(p.perfect), rounds: Math.max(0, int(p.rounds)), rc: rc, un: un, bz: bz, bd: bd, words: words };
+  return { name: String(p.name || '').slice(0, 20), grade: clampInt(p.grade || 5, 4, 6), av: typeof p.av === 'string' && own(AV_BY_ID, p.av) ? p.av : '', pt: int(p.pt), rz: rz, last: int(p.last), streak: int(p.streak), best: int(p.best), perfect: int(p.perfect), rounds: Math.max(0, int(p.rounds)), rc: rc, wb: wb, bs: clampInt(p.bs, 0, 9), bt: Math.max(0, int(p.bt)), un: un, bz: bz, bd: bd, words: words };
 }
 /* combine this device's copy with the saved copy: the later attempt on each word wins */
 function mergePlayer(local, remote) {
   const a = normP(local), b = normP(remote);
   /* if only one copy knows about an "erase progress", its counters are the ones that count */
   const fresh = a.rz === b.rz ? null : (a.rz > b.rz ? a : b);
-  const out = { name: a.name, grade: a.grade, av: a.av, pt: a.pt, rz: Math.max(a.rz, b.rz), last: a.last, streak: a.streak, best: Math.max(a.best, b.best), perfect: Math.max(a.perfect, b.perfect), rounds: Math.max(a.rounds, b.rounds), rc: {}, un: {}, bz: {}, bd: {}, words: {} };
+  const out = { name: a.name, grade: a.grade, av: a.av, pt: a.pt, rz: Math.max(a.rz, b.rz), last: a.last, streak: a.streak, best: Math.max(a.best, b.best), perfect: Math.max(a.perfect, b.perfect), rounds: Math.max(a.rounds, b.rounds), rc: {}, wb: {}, bs: a.bs, bt: a.bt, un: {}, bz: {}, bd: {}, words: {} };
   if (b.pt > a.pt) { out.name = b.name; out.grade = b.grade; out.av = b.av || a.av; out.pt = b.pt; }
   if (b.last > a.last) { out.last = b.last; out.streak = b.streak; }
   else if (b.last === a.last) out.streak = Math.max(a.streak, b.streak);
-  if (fresh) { out.last = fresh.last; out.streak = fresh.streak; out.best = fresh.best; out.perfect = fresh.perfect; out.rounds = fresh.rounds; }
+  if (b.bt > a.bt) { out.bs = b.bs; out.bt = b.bt; }
+  if (fresh) { out.last = fresh.last; out.streak = fresh.streak; out.best = fresh.best; out.perfect = fresh.perfect; out.rounds = fresh.rounds; out.bs = fresh.bs; out.bt = fresh.bt; }
   [a, b].forEach(function (src) {
     Object.keys(src.words).forEach(function (k) {
       const e = src.words[k];
@@ -963,6 +1102,7 @@ function mergePlayer(local, remote) {
     Object.keys(src.bz).forEach(function (k) { out.bz[k] = Math.max(out.bz[k] || 0, src.bz[k]); });
     /* each device only ever raises its own round count, so the larger number per device is the true one */
     if (!fresh || src === fresh) Object.keys(src.rc).forEach(function (k) { out.rc[k] = Math.max(out.rc[k] || 0, src.rc[k]); });
+    if (!fresh || src === fresh) Object.keys(src.wb).forEach(function (k) { if (!out.wb[k] || src.wb[k][1] > out.wb[k][1]) out.wb[k] = src.wb[k].slice(); });
   });
   return normP(out);
 }
@@ -1165,7 +1305,7 @@ function unb64u(s) {
 }
 function slimPlayer(id) {
   const p = normP(state.players[id]);
-  return { slot: id, name: p.name, grade: p.grade, av: p.av, pt: p.pt, rz: p.rz, last: p.last, streak: p.streak, best: p.best, perfect: p.perfect, rounds: p.rounds, rc: p.rc, un: p.un, bz: p.bz, bd: p.bd,
+  return { slot: id, name: p.name, grade: p.grade, av: p.av, pt: p.pt, rz: p.rz, last: p.last, streak: p.streak, best: p.best, perfect: p.perfect, rounds: p.rounds, rc: p.rc, wb: p.wb, bs: p.bs, bt: p.bt, un: p.un, bz: p.bz, bd: p.bd,
     w: Object.keys(p.words).map(function (k) { const e = p.words[k]; return [k, e.b, e.d, e.r, e.w, Math.ceil(e.t / 1000)]; }) };
 }
 function fatPlayer(raw) {
@@ -1174,7 +1314,7 @@ function fatPlayer(raw) {
   (Array.isArray(raw.w) ? raw.w : []).forEach(function (x) {
     if (Array.isArray(x) && typeof x[0] === 'string' && own(WORD_BY_ID, x[0])) words[x[0]] = { b: x[1], d: x[2], r: x[3], w: x[4], t: int(x[5]) * 1000 };
   });
-  return normP({ name: raw.name, grade: raw.grade, av: raw.av, pt: raw.pt, rz: raw.rz, last: raw.last, streak: raw.streak, best: raw.best, perfect: raw.perfect, rounds: raw.rounds, rc: raw.rc, un: raw.un, bz: raw.bz, bd: raw.bd, words: words });
+  return normP({ name: raw.name, grade: raw.grade, av: raw.av, pt: raw.pt, rz: raw.rz, last: raw.last, streak: raw.streak, best: raw.best, perfect: raw.perfect, rounds: raw.rounds, rc: raw.rc, wb: raw.wb, bs: raw.bs, bt: raw.bt, un: raw.un, bz: raw.bz, bd: raw.bd, words: words });
 }
 /* everyone on this device who has a name (and the test account if it has been used) */
 async function makeCode() {
@@ -1460,7 +1600,7 @@ function put48(o, v) { o.put(Math.floor(v / 4294967296), 16); o.put(v % 42949672
 function get48(i) { const hi = i.get(16); return hi * 4294967296 + i.get(32); }
 function packPart(id, wordIds, part, parts, nowMs, today) {
   const p = normP(state.players[id]), o = new BitOut(), createdMin = Math.floor(nowMs / 60000);
-  o.put(1, 4); o.put(catalogPrint(), 16); o.put(part, 3); o.put(parts, 3);
+  o.put(2, 4); o.put(catalogPrint(), 16); o.put(part, 3); o.put(parts, 3);
   o.put(createdMin, 32); o.put(today, 16); o.put(IDS.indexOf(id), 2);
   const nameBytes = Array.from(new TextEncoder().encode(p.name)).slice(0, 63);
   o.put(nameBytes.length, 6); nameBytes.forEach(function (b) { o.put(b, 8); });
@@ -1474,6 +1614,8 @@ function packPart(id, wordIds, part, parts, nowMs, today) {
   AVATARS.forEach(function (a) { o.put(p.un[a.id] ? 1 : 0, 1); });
   AVATARS.forEach(function (a) { o.put(p.bz[a.id] ? 1 : 0, 1); });
   BADGES.forEach(function (b) { o.put(p.bd[b.id] ? 1 : 0, 1); });
+  BUILD_CATS.forEach(function (c) { const t = p.wb[c[0]] || [0, 0]; o.put(Math.min(16383, t[0]), 14); o.put(Math.min(16383, t[1]), 14); });
+  o.put(Math.min(3, p.bs), 2);
   const has = {}; wordIds.forEach(function (k) { has[k] = 1; });
   const order = WORDS.filter(function (w) { return has[w.id]; });
   const bitmap = order.length * WORD_BITS > WORDS.length;
@@ -1496,7 +1638,8 @@ function unpackPart(digits) {
   const body = all.slice(0, -2), sum = all[all.length - 2] * 256 + all[all.length - 1];
   if (fletcher(body) !== sum) throw new Error('sum');
   const i = new BitIn(body);
-  if (i.get(4) !== 1) throw new Error('print');
+  const fmt = i.get(4);
+  if (fmt !== 1 && fmt !== 2) throw new Error('print');
   if (i.get(16) !== catalogPrint()) throw new Error('print');
   const part = i.get(3), parts = i.get(3), createdMs = i.get(32) * 60000, today = i.get(16), slot = IDS[i.get(2)];
   const nb = []; for (let n = i.get(6); n > 0; n--) nb.push(i.get(8));
@@ -1511,6 +1654,7 @@ function unpackPart(digits) {
   AVATARS.forEach(function (a) { if (i.get(1)) raw.un[a.id] = Math.max(createdMs, raw.rz); });
   AVATARS.forEach(function (a) { if (i.get(1)) raw.bz[a.id] = Math.max(createdMs, raw.rz); });
   BADGES.forEach(function (b) { if (i.get(1)) raw.bd[b.id] = Math.max(createdMs, raw.rz); });
+  if (fmt >= 2) { raw.wb = {}; BUILD_CATS.forEach(function (c) { const r = i.get(14), n = i.get(14); if (n) raw.wb[c[0]] = [r, n]; }); raw.bs = i.get(2); raw.bt = createdMs; }
   const count = i.get(10), bitmap = i.get(1), order = [];
   if (bitmap) WORDS.forEach(function (w) { if (i.get(1)) order.push(w); });
   else for (let n = 0; n < count; n++) order.push(WORDS[i.get(WORD_BITS)]);
@@ -1774,7 +1918,9 @@ function renderHome() {
       + (id === 't' ? '<p class="small soft">For trying things out. It keeps its own progress, so nothing here touches the two spellers.</p>' : '')
       + stripSVG(p)
       + '<p class="pc-stats"><span><b>' + c.mastered + '</b> mastered</span><span><b>' + c.due + '</b> to review today</span><span><b>' + streak + '</b>-day streak</span><span><b>' + Object.keys(p.bd).length + '</b> ' + (Object.keys(p.bd).length === 1 ? 'badge' : 'badges') + '</span><span><b>' + badgeBank(p).left + '</b> honey ' + (badgeBank(p).left === 1 ? 'drop' : 'drops') + '</span></p>'
-      + '<div class="pc-go"><button type="button" class="btn" data-start="' + id + '">' + (played ? 'Play another round' : "Start today's round") + '</button>'
+      + '<div class="pc-go"><div class="pc-btns"><button type="button" class="btn" data-start="' + id + '">' + (played ? 'Play another round' : "Start today's round") + '</button>'
+      + '<button type="button" class="btn quiet alt" data-build="' + id + '"' + (builderLocked(p) ? ' disabled' : '') + '>Word Builder</button></div>'
+      + (builderLocked(p) ? '<p class="small soft">Word Builder opens again after a spelling round.</p>' : '')
       + '<div class="pc-links"><button type="button" class="link" data-bees="' + id + '">My bee</button><button type="button" class="link" data-hive="' + id + '">My hive</button><button type="button" class="link" data-shelf="' + id + '">My badges</button><button type="button" class="link" data-edit="' + id + '">Edit</button></div></div></article>';
   }).join('');
   $('v-home').innerHTML = (arrival ? '<div class="unlock"><div class="who-new"><p class="tag">' + (arrival.ok ? 'Progress added' : 'Progress not added') + '</p><p>' + arrival.html + '</p></div><button type="button" class="btn quiet" data-arrival-close="1">OK</button></div>' : '')
@@ -1851,7 +1997,9 @@ function burst() {
   setTimeout(function () { el.innerHTML = ''; }, 1000);
 }
 function nextItem() {
-  if (round.i >= round.queue.length) return finishRound();
+  if (round.i >= round.queue.length) return round.mode === 'build' ? finishBuild() : finishRound();
+  if (round.mode === 'build') return nextBuild();
+  $('build').hidden = true; $('hear').hidden = false;
   const it = round.queue[round.i];
   round.phase = 'try1'; round.peeked = false;
   const fm = flashMode();
@@ -1869,7 +2017,7 @@ function nextItem() {
 }
 function flashWord(countsAsPeek) {
   const it = round.queue[round.i], f = $('flash');
-  if (round.phase !== 'try1' && round.phase !== 'try2') return;
+  if (round.mode === 'build' || (round.phase !== 'try1' && round.phase !== 'try2')) return;
   if (countsAsPeek) { round.peeked = true; round.peeks++; }
   clearTimeout(flashTimer);
   round.flashing = true;
@@ -1887,7 +2035,7 @@ function tipHTML(w) {
 }
 function onCheck() {
   if (!round || round.flashing) return;
-  const it = round.queue[round.i], w = it.w, fb = $('feedback');
+  const it = round.queue[round.i], w = it.w, bi = it.b, word = bi ? bi.ans : w.w, tgt = word.toLowerCase(), fb = $('feedback');
   if (round.phase === 'done') { round.i++; return nextItem(); }
   if (round.phase === 'study') {
     round.phase = 'cover';
@@ -1897,31 +2045,32 @@ function onCheck() {
   }
   const val = norm($('answer').value);
   if (!val) { $('answer').focus(); return; }
-  const ok = val === w.w.toLowerCase();
+  const ok = val === tgt;
   if (ok) return finishItem(round.phase === 'try1' && !round.peeked);
-  const d = diff(val, w.w.toLowerCase());
+  const d = diff(val, tgt);
   if (round.phase === 'try1') {
     round.phase = 'try2';
     fb.innerHTML = '<p class="fb-title miss">' + (d.dist <= 2 ? 'Close. Fix the marked letters.' : 'Not yet. Check the marked letters.') + '</p>'
       + tilesHTML(d.typed)
       + '<p class="note">Red letters are wrong or extra. A red dot means a letter is missing there.</p>'
-      + tipHTML(w);
+      + (bi ? '<p class="tip"><b>Hint:</b> ' + BUILD_HINT[bi.cat] + '</p>' : tipHTML(w));
     setInput({ label: 'Check again', focus: true });
     setBee('oops', 'shake');
-    if (!flashMode()) say([w.w], 0.8);
+    if (!bi && !flashMode()) say([w.w], 0.8);
   } else {
     round.phase = 'study';
-    const want = d.want.map(function (c, k) { return { c: w.w[k], k: c.k === 'mark' ? 'mark' : 'ok' }; });
+    const want = d.want.map(function (c, k) { return { c: word[k], k: c.k === 'mark' ? 'mark' : 'ok' }; });
     fb.innerHTML = '<p class="fb-title">Here it is. Study it, then hide it.</p>'
       + tilesHTML(want)
-      + (w.h ? '<p class="tip"><b>Remember:</b> ' + esc(w.h) + '</p>' : tipHTML(w));
+      + (bi ? '<p class="tip"><b>Why:</b> ' + esc(bi.note) + '</p>' : w.h ? '<p class="tip"><b>Remember:</b> ' + esc(w.h) + '</p>' : tipHTML(w));
     setInput({ value: '', label: 'Hide it and try', hidden: true });
     setBee('oops', 'shake');
     $('check').focus();
-    if (!flashMode()) say([w.w], 0.8);
+    if (!bi && !flashMode()) say([w.w], 0.8);
   }
 }
 function finishItem(first) {
+  if (round.mode === 'build') return finishBuildItem(first);
   const it = round.queue[round.i], w = it.w, p = state.players[round.pid], fb = $('feedback');
   let when = '';
   if (!it.repeat) {
@@ -1944,11 +2093,92 @@ function finishItem(first) {
   setInput({ value: w.w, label: last ? 'Finish round' : 'Next word', readOnly: true });
   $('check').focus();
 }
+/* ----- word builder round ----- */
+function startBuild(id) {
+  const p = state.players[id];
+  if (builderLocked(p)) return show('home');
+  const picks = buildPicks(p, BUILD_LEN);
+  round = { mode: 'build', pid: id, today: dayNum(), queue: picks.map(function (b) { return { b: b, repeat: false }; }), i: 0, total: picks.length, results: [], phase: 'try1', peeked: false, flashing: false, peeks: 0 };
+  show('play');
+  nextItem();
+}
+function buildHTML(b, solved) {
+  return b.parts.map(function (pt, i) {
+    return (i ? '<span class="plus">+</span>' : '') + '<span class="part"><b>' + esc(pt) + '</b><small>' + (PART_MEANS[pt] || '&nbsp;') + '</small></span>';
+  }).join('') + '<span class="plus">=</span><span class="part ' + (solved ? 'done' : 'ask') + '"><b>' + (solved ? esc(b.ans) : '?') + '</b><small>&nbsp;</small></span>'
+    + (synth && !solved ? '<button type="button" class="link" id="build-hear">Hear the word</button>' : '');
+}
+function nextBuild() {
+  const it = round.queue[round.i];
+  round.phase = 'try1'; round.peeked = false;
+  $('play-who').textContent = pname(round.pid);
+  renderPips();
+  $('hear').hidden = true; $('aux').hidden = true; $('flash').hidden = true;
+  $('build').hidden = false; $('build').innerHTML = buildHTML(it.b, false);
+  $('sentence').textContent = it.repeat ? 'One more go at this one. Join the parts and type the whole word.' : 'Join the parts and type the whole word.';
+  setBee('happy', 'bob');
+  $('feedback').innerHTML = '';
+  setInput({ value: '', label: 'Check', focus: true });
+}
+function finishBuildItem(first) {
+  const it = round.queue[round.i], b = it.b, p = state.players[round.pid];
+  if (!it.repeat) {
+    const tally = p.wb[b.cat] || (p.wb[b.cat] = [0, 0]);
+    tally[1]++; if (first) tally[0]++;
+    round.results.push({ b: b, first: first });
+    if (!first) round.queue.push({ b: b, repeat: true });
+    savePlayer(round.pid);
+    renderPips();
+  }
+  round.phase = 'done';
+  ding(first);
+  setBee('cheer', 'hop');
+  if (first) burst();
+  $('build').innerHTML = buildHTML(b, true);
+  const last = round.i === round.queue.length - 1;
+  $('feedback').innerHTML = '<p class="fb-title good">' + (first ? 'Yes! You built it.' : 'There it is!') + '</p>'
+    + tilesHTML(b.ans.split('').map(function (c) { return { c: c, k: 'win' }; }), true)
+    + '<p class="tip"><b>Why:</b> ' + esc(b.note) + '</p>';
+  setInput({ value: b.ans, label: last ? 'Finish round' : 'Next word', readOnly: true });
+  $('check').focus();
+}
+function finishBuild() {
+  const pid = round.pid, p = state.players[pid], today = round.today;
+  if (p.last !== today) { p.streak = p.last === today - 1 ? p.streak + 1 : 1; p.last = today; }
+  p.best = Math.max(p.best, p.streak);
+  p.rc[DEVICE] = (p.rc[DEVICE] || 0) + 1;
+  p.bs = Math.min(9, p.bs + 1); p.bt = Date.now();
+  const first = round.results.filter(function (r) { return r.first; }).length;
+  const newB = checkBadges(p);
+  savePlayer(pid);
+  const nb = nextBee(p), bank = badgeBank(p), canTrade = nb && bank.left >= nb.cost;
+  $('v-done').innerHTML = '<div class="title-row"><div id="done-bee">' + beeSVG(avOf(pid), 'cheer') + '</div><h1>Builder round done, ' + esc(pname(pid)) + '!</h1></div>'
+    + (newB.length ? '<div class="unlock"><div class="who-new"><p class="tag">New on your Honey Shelf</p><div class="newrow">'
+        + newB.map(function (b) { return '<figure>' + badgeSVG(b) + '<figcaption>' + b.name + '</figcaption></figure>'; }).join('')
+        + '</div></div><button type="button" class="btn" data-shelf="' + pid + '">See my shelf</button></div>' : '')
+    + (canTrade ? '<div class="unlock"><div>' + beeSVG(nb, 'happy') + '</div><div class="who-new"><p class="tag">You can trade for a bee</p><h2>' + plural(bank.left, 'honey drop') + ' to spend</h2><p class="small soft">' + nb.name + ' costs ' + plural(nb.cost, 'drop') + '.</p></div>'
+        + '<button type="button" class="btn" data-bees="' + pid + '">Pick a bee</button></div>' : '')
+    + '<div class="score"><div class="stat"><b>' + first + ' of ' + round.results.length + '</b><span>built right on the first try</span></div>'
+    + '<div class="stat"><b>' + p.streak + '</b><span>' + (p.streak === 1 ? 'day' : 'days') + ' in a row</span></div>'
+    + '<div class="stat"><b>+' + (1 + newB.length) + '</b><span>honey ' + (newB.length ? 'drops' : 'drop') + ' earned</span></div></div>'
+    + '<div class="sheet"><ul class="wordlist">' + round.results.map(function (r) { return '<li><span class="w">' + esc(r.b.parts.join(' + ')) + ' = ' + esc(r.b.ans) + '</span><span class="chip ' + (r.first ? 'ok' : 'no') + '">' + (r.first ? 'first try' : 'second go') + '</span></li>'; }).join('') + '</ul></div>'
+    + (builderLocked(p) ? '<p class="lede">That is ' + BUILD_MAX_ROW + ' Builder rounds in a row. Finish a spelling round and Word Builder opens again.</p>' : '')
+    + '<div class="pc-actions"><button type="button" class="btn" data-go="home">Done</button>'
+    + (builderLocked(p) ? '<button type="button" class="btn quiet" data-start="' + pid + '">Start a spelling round</button>' : '<button type="button" class="btn quiet" data-build="' + pid + '">Build again</button>')
+    + '<button type="button" class="btn quiet" data-bees="' + pid + '">My bee</button></div>';
+  round = null;
+  show('done');
+  window.scrollTo(0, 0);
+  flyBee(pid);
+  if (newB.length) playSound('fanfare');
+}
+
 function finishRound() {
   const pid = round.pid, p = state.players[pid], today = round.today;
   if (p.last !== today) { p.streak = p.last === today - 1 ? p.streak + 1 : 1; p.last = today; }
   p.best = Math.max(p.best, p.streak);
   p.rc[DEVICE] = (p.rc[DEVICE] || 0) + 1;
+  p.bs = 0; p.bt = Date.now();          /* a finished spelling round opens Word Builder again */
   const first = round.results.filter(function (r) { return r.first; }).length;
   const filled = round.results.filter(function (r) { return r.mastered; }).length;
   const miss = round.results.length - first;
@@ -2102,6 +2332,11 @@ function renderGrown() {
   $('v-grown').innerHTML = '<h1>For grown-ups</h1>' + segHTML()
     + '<div class="score"><div class="stat"><b>' + roundsOf(p) + '</b><span>rounds played</span></div><div class="stat"><b>' + c.mastered + '</b><span>words mastered</span></div><div class="stat"><b>' + (c.seen - c.mastered) + '</b><span>still learning</span></div><div class="stat"><b>' + (c.total - c.seen) + '</b><span>not met yet</span></div></div>'
     + '<div class="panel"><h2>Patterns, weakest first</h2><p class="lede small">The share of words in each pattern spelled right on the first try. New words lean toward the two weakest patterns once there are at least four tries to go on.</p><div>' + rows + '</div></div>'
+    + '<div class="panel"><h2>Word Builder</h2><p class="lede small">In a Word Builder round the child joins parts, such as hope + ing, and types the word. This shows how often each joining rule was right on the first try. Rounds lean toward the weakest rule. After ' + BUILD_MAX_ROW + ' Builder rounds in a row, a spelling round has to be finished before Word Builder opens again.</p><div>'
+      + BUILD_CATS.map(function (c) {
+        const t = p.wb[c[0]], pct = t ? Math.round(100 * t[0] / t[1]) : 0;
+        return '<div class="prow"><span class="pname">' + c[1] + '</span><div class="bar" role="img" aria-label="' + (t ? pct + ' percent right on the first try' : 'no tries yet') + '"><i class="' + (pct < 60 ? 'lo' : pct < 85 ? 'mid' : 'hi') + '" style="width:' + pct + '%"></i></div><span class="num">' + (t ? pct + '% first try (' + t[0] + ' of ' + t[1] + ')' : 'no tries yet') + '</span></div>';
+      }).join('') + '</div></div>'
     + '<div class="panel"><h2>Words missed</h2>' + (trouble.length
         ? '<div class="chips">' + trouble.map(function (w) { const e = p.words[w.id]; return '<span class="chip ' + (e.b >= MASTERED ? 'ok' : 'bad') + '">' + esc(w.w) + ' ×' + e.w + '</span>'; }).join('') + '</div><p class="small soft">The number is how many times the word was missed. Green means it has since been mastered.</p>'
         : '<p class="soft">Nothing missed yet. Missed words will be listed here with how many times each was missed.</p>') + '</div>'
@@ -2146,11 +2381,13 @@ function renderGrown() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', function (ev) {
-  const t = ev.target.closest('[data-go],[data-start],[data-hive],[data-edit],[data-sel],[data-hex],[data-bees],[data-bee],[data-buy-ask],[data-buy],[data-buy-no],[data-shelf],[data-arrival-close],#qr-show,#qr-next,#qr-prev,#qr-hide,#unlock-all,#xfer-make,#xfer-copy,#xfer-share,#xfer-load,#fly-test,#hear,#hear-sent,#hear-slow,#peek,#quit,#voice-test,#ding-test,#fanfare-test,#reset-ask,#reset-yes,#reset-no');
+  const t = ev.target.closest('[data-go],[data-start],[data-build],#build-hear,[data-hive],[data-edit],[data-sel],[data-hex],[data-bees],[data-bee],[data-buy-ask],[data-buy],[data-buy-no],[data-shelf],[data-arrival-close],#qr-show,#qr-next,#qr-prev,#qr-hide,#unlock-all,#xfer-make,#xfer-copy,#xfer-share,#xfer-load,#fly-test,#hear,#hear-sent,#hear-slow,#peek,#quit,#voice-test,#ding-test,#fanfare-test,#reset-ask,#reset-yes,#reset-no');
   if (!t) return;
   const it = round ? round.queue[round.i] : null;
   if (t.dataset.go) { confirmReset = false; confirmBee = ''; return show(t.dataset.go); }
   if (t.dataset.start) return startRound(t.dataset.start);
+  if (t.dataset.build) return startBuild(t.dataset.build);
+  if (t.id === 'build-hear') { if (round && round.queue[round.i] && round.queue[round.i].b) say([round.queue[round.i].b.ans]); return $('answer').focus(); }
   if (t.dataset.hive) { sel = t.dataset.hive; return show('hive'); }
   if (t.dataset.edit) { editing[t.dataset.edit] = true; return renderHome(); }
   if (t.dataset.sel) { sel = t.dataset.sel; confirmReset = false; qrv = { pid: '', links: [], i: 0, msg: '' }; return show(view); }
@@ -2229,10 +2466,10 @@ document.addEventListener('click', function (ev) {
     BADGES.forEach(function (b) { p.bd[b.id] = p.bd[b.id] || now; });
     savePlayer('t'); sel = 't'; return show('shelf');
   }
-  if (t.id === 'hear' && it) { if (flashMode()) flashWord(false); else say([it.w.w]); if (!round.flashing) $('answer').focus(); return; }
-  if (t.id === 'hear-sent' && it) { say([it.w.s]); return $('answer').focus(); }
-  if (t.id === 'hear-slow' && it) { say([it.w.w], 0.55); return $('answer').focus(); }
-  if (t.id === 'peek' && it) return flashWord(true);
+  if (t.id === 'hear' && it && it.w) { if (flashMode()) flashWord(false); else say([it.w.w]); if (!round.flashing) $('answer').focus(); return; }
+  if (t.id === 'hear-sent' && it && it.w) { say([it.w.s]); return $('answer').focus(); }
+  if (t.id === 'hear-slow' && it && it.w) { say([it.w.w], 0.55); return $('answer').focus(); }
+  if (t.id === 'peek' && it && it.w) return flashWord(true);
   if (t.id === 'quit') { round = null; return show('home'); }
   if (t.id === 'voice-test') return say(['Spell the word: honeycomb.']);
   if (t.id === 'ding-test' || t.id === 'fanfare-test') {
