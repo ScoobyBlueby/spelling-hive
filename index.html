@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Spelling">
 <meta name="robots" content="noindex">
 <meta name="referrer" content="no-referrer">
@@ -310,6 +308,9 @@ button.beecard:hover { transform: translateY(-3px); }
 .check input { width: 20px; height: 20px; margin-top: 3px; flex: none; accent-color: var(--honey-deep); }
 .confirm { background: var(--miss-wash); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .confirm .row { align-items: center; }
+.qrbox { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; border: 3px solid var(--outline); border-radius: 18px; padding: 14px; max-width: 26rem; }
+.qr { display: block; width: 100%; max-width: 23rem; height: auto; border-radius: 6px; }
+.panel h3 { margin-top: 6px; }
 textarea.code { font-family: var(--letters); font-size: var(--t-xs); line-height: 1.4; width: 100%; background: var(--surface); color: var(--ink); border: 3px solid var(--outline); border-radius: 12px; padding: 8px 10px; word-break: break-all; resize: vertical; }
 .msg-ok { color: var(--good); font-weight: 700; }
 .msg-no { color: var(--miss); font-weight: 700; }
@@ -1080,11 +1081,15 @@ const DEVICE = (function () {
   } catch (e) { return 'device'; }
 })();
 function playerFrom(id, raw) { const p = normP(raw); if (id === 't' && !p.name) p.name = 'Test'; if (!p.av) p.av = DEF_AV[id]; return p; }
-let state = { players: { a: playerFrom('a'), b: playerFrom('b'), t: playerFrom('t') }, settings: { len: 12, flash: false, sound: true, keys: true, st: 0 } };
+let state = { players: { a: playerFrom('a'), b: playerFrom('b'), t: playerFrom('t') }, settings: { len: 12, flash: false, sound: true, keys: true, site: '', st: 0 } };
 let db = null, syncMode = 'checking';
 const writers = {};
 
-function normSettings(s) { s = s || {}; const len = int(s.len); return { len: [8, 12, 16].indexOf(len) >= 0 ? len : 12, flash: !!s.flash, sound: s.sound !== false, keys: s.keys !== false, st: int(s.st) }; }
+function cleanSite(v) {
+  v = String(v || '').trim().split('#')[0];
+  return /^https:\/\/[A-Za-z0-9.\-]{3,80}(\/[A-Za-z0-9._~\-\/]{0,100})?$/.test(v) ? v : '';
+}
+function normSettings(s) { s = s || {}; const len = int(s.len); return { len: [8, 12, 16].indexOf(len) >= 0 ? len : 12, flash: !!s.flash, sound: s.sound !== false, keys: s.keys !== false, site: cleanSite(s.site), st: int(s.st) }; }
 function loadLocal() {
   try {
     const raw = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
@@ -1199,6 +1204,323 @@ function importPlayers(list) {
   return out;
 }
 function canShare() { return typeof navigator.share === 'function'; }
+
+/* ---------- QR codes: one child's progress, packed small, inside a link the other device's camera can open ---------- */
+const ON_WEBSITE = true;
+
+/* A plain QR code maker (versions 1 to 40, error-correction levels L and M, text and number sections). */
+const QR = (function () {
+  const ECC = {
+    L: [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+    M: [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28]
+  };
+  const BLOCKS = {
+    L: [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25],
+    M: [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49]
+  };
+  const FORMAT = { L: 1, M: 0 };
+  function rawModules(v) {
+    let r = (16 * v + 128) * v + 64;
+    if (v >= 2) { const a = Math.floor(v / 7) + 2; r -= (25 * a - 10) * a - 55; if (v >= 7) r -= 36; }
+    return r;
+  }
+  function dataCodewords(v, e) { return Math.floor(rawModules(v) / 8) - ECC[e][v] * BLOCKS[e][v]; }
+  function gfMul(x, y) { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; }
+  function rsDivisor(deg) {
+    const res = []; for (let i = 0; i < deg - 1; i++) res.push(0); res.push(1);
+    let root = 1;
+    for (let i = 0; i < deg; i++) {
+      for (let j = 0; j < res.length; j++) { res[j] = gfMul(res[j], root); if (j + 1 < res.length) res[j] ^= res[j + 1]; }
+      root = gfMul(root, 2);
+    }
+    return res;
+  }
+  function rsRemainder(data, div) {
+    const res = div.map(function () { return 0; });
+    data.forEach(function (b) { const f = b ^ res.shift(); res.push(0); div.forEach(function (c, i) { res[i] ^= gfMul(c, f); }); });
+    return res;
+  }
+  function countBits(mode, v) { return mode === 'num' ? (v <= 9 ? 10 : v <= 26 ? 12 : 14) : (v <= 9 ? 8 : 16); }
+  function push(bits, val, n) { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); }
+  function segPayload(seg) {
+    const bits = [];
+    if (seg.mode === 'num') {
+      for (let i = 0; i < seg.text.length; i += 3) { const part = seg.text.substr(i, 3); push(bits, parseInt(part, 10), part.length * 3 + 1); }
+      return { bits: bits, count: seg.text.length };
+    }
+    const bytes = new TextEncoder().encode(seg.text);
+    bytes.forEach(function (b) { push(bits, b, 8); });
+    return { bits: bits, count: bytes.length };
+  }
+  /* segs: [{mode: 'byte' | 'num', text}]. Returns {size, version, dark(x, y)} or null if it cannot fit. */
+  function encode(segs, ecl) {
+    const pay = segs.map(segPayload);
+    let ver = 0;
+    for (let v = 1; v <= 40 && !ver; v++) {
+      let need = 0;
+      pay.forEach(function (p, i) { need += 4 + countBits(segs[i].mode, v) + p.bits.length; });
+      if (need <= dataCodewords(v, ecl) * 8) ver = v;
+    }
+    if (!ver) return null;
+    const cap = dataCodewords(ver, ecl) * 8, bits = [];
+    pay.forEach(function (p, i) { push(bits, segs[i].mode === 'num' ? 1 : 4, 4); push(bits, p.count, countBits(segs[i].mode, ver)); p.bits.forEach(function (b) { bits.push(b); }); });
+    push(bits, 0, Math.min(4, cap - bits.length));
+    push(bits, 0, (8 - bits.length % 8) % 8);
+    for (let pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) push(bits, pad, 8);
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) { let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; data.push(b); }
+    /* split into blocks, add error-correction bytes, interleave */
+    const nb = BLOCKS[ecl][ver], el = ECC[ecl][ver], rawCw = Math.floor(rawModules(ver) / 8);
+    const nShort = nb - rawCw % nb, shortLen = Math.floor(rawCw / nb), div = rsDivisor(el), blocks = [];
+    for (let i = 0, k = 0; i < nb; i++) {
+      const dat = data.slice(k, k + shortLen - el + (i < nShort ? 0 : 1));
+      k += dat.length;
+      const ecc = rsRemainder(dat, div);
+      if (i < nShort) dat.push(0);
+      blocks.push(dat.concat(ecc));
+    }
+    const all = [];
+    for (let i = 0; i < blocks[0].length; i++) blocks.forEach(function (bl, j) { if (i !== shortLen - el || j >= nShort) all.push(bl[i]); });
+    /* draw */
+    const size = ver * 4 + 17, mod = [], fn = [];
+    for (let y = 0; y < size; y++) { mod.push(new Uint8Array(size)); fn.push(new Uint8Array(size)); }
+    const setFn = function (x, y, on) { mod[y][x] = on ? 1 : 0; fn[y][x] = 1; };
+    for (let i = 0; i < size; i++) { setFn(6, i, i % 2 === 0); setFn(i, 6, i % 2 === 0); }
+    const finder = function (cx, cy) {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+        if (x >= 0 && x < size && y >= 0 && y < size) setFn(x, y, d !== 2 && d !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    const align = [];
+    if (ver > 1) {
+      const na = Math.floor(ver / 7) + 2, step = ver === 32 ? 26 : Math.ceil((ver * 4 + 4) / (na * 2 - 2)) * 2;
+      align.push(6);
+      for (let pos = size - 7; align.length < na; pos -= step) align.splice(1, 0, pos);
+    }
+    align.forEach(function (ay, i) { align.forEach(function (ax, j) {
+      if ((i === 0 && j === 0) || (i === 0 && j === align.length - 1) || (i === align.length - 1 && j === 0)) return;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) setFn(ax + dx, ay + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }); });
+    const drawFormat = function (mask) {
+      const d = FORMAT[ecl] << 3 | mask; let rem = d;
+      for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      const b = (d << 10 | rem) ^ 0x5412, bit = function (i) { return ((b >>> i) & 1) !== 0; };
+      for (let i = 0; i <= 5; i++) setFn(8, i, bit(i));
+      setFn(8, 7, bit(6)); setFn(8, 8, bit(7)); setFn(7, 8, bit(8));
+      for (let i = 9; i < 15; i++) setFn(14 - i, 8, bit(i));
+      for (let i = 0; i < 8; i++) setFn(size - 1 - i, 8, bit(i));
+      for (let i = 8; i < 15; i++) setFn(8, size - 15 + i, bit(i));
+      setFn(8, size - 8, true);
+    };
+    drawFormat(0);
+    if (ver >= 7) {
+      let rem = ver;
+      for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      const b = ver << 12 | rem;
+      for (let i = 0; i < 18; i++) { const on = ((b >>> i) & 1) !== 0, a = size - 11 + i % 3, c = Math.floor(i / 3); setFn(a, c, on); setFn(c, a, on); }
+    }
+    let k = 0;
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let vert = 0; vert < size; vert++) for (let j = 0; j < 2; j++) {
+        const x = right - j, up = ((right + 1) & 2) === 0, y = up ? size - 1 - vert : vert;
+        if (!fn[y][x] && k < all.length * 8) { mod[y][x] = (all[k >>> 3] >>> (7 - (k & 7))) & 1; k++; }
+      }
+    }
+    const applyMask = function (m) {
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        if (fn[y][x]) continue;
+        let inv;
+        if (m === 0) inv = (x + y) % 2 === 0; else if (m === 1) inv = y % 2 === 0; else if (m === 2) inv = x % 3 === 0; else if (m === 3) inv = (x + y) % 3 === 0;
+        else if (m === 4) inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; else if (m === 5) inv = x * y % 2 + x * y % 3 === 0;
+        else if (m === 6) inv = (x * y % 2 + x * y % 3) % 2 === 0; else inv = ((x + y) % 2 + x * y % 3) % 2 === 0;
+        if (inv) mod[y][x] ^= 1;
+      }
+    };
+    const penalty = function () {
+      let p = 0, dark = 0;
+      for (let pass = 0; pass < 2; pass++) for (let a = 0; a < size; a++) {
+        let run = 0, col = -1, hist = 0;
+        for (let b = 0; b < size; b++) {
+          const c = pass ? mod[b][a] : mod[a][b];
+          if (c === col) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else { col = c; run = 1; }
+          hist = ((hist << 1) | c) & 0x7FF;
+          if (b >= 10 && (hist === 0x5D0 || hist === 0x05D)) p += 40;
+          if (!pass) dark += c;
+        }
+      }
+      for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++) { const c = mod[y][x]; if (c === mod[y][x + 1] && c === mod[y + 1][x] && c === mod[y + 1][x + 1]) p += 3; }
+      const total = size * size;
+      return p + (Math.ceil(Math.abs(dark * 20 - total * 10) / total) - 1) * 10;
+    };
+    let best = 0, bestP = Infinity;
+    for (let m = 0; m < 8; m++) { applyMask(m); drawFormat(m); const p = penalty(); if (p < bestP) { bestP = p; best = m; } applyMask(m); }
+    applyMask(best); drawFormat(best);
+    return { size: size, version: ver, dark: function (x, y) { return mod[y][x] === 1; } };
+  }
+  return { encode: encode };
+})();
+function qrSVG(link) {
+  const at = link.indexOf('#q=') + 3;
+  const segs = at > 2 && /^\d+$/.test(link.slice(at)) ? [{ mode: 'byte', text: link.slice(0, at) }, { mode: 'num', text: link.slice(at) }] : [{ mode: 'byte', text: link }];
+  let total = 0; segs.forEach(function (sg) { total += sg.text.length; });
+  const q = QR.encode(segs, total < 500 ? 'M' : 'L');
+  if (!q) return '';
+  const n = q.size + 8;
+  let d = '';
+  for (let y = 0; y < q.size; y++) for (let x = 0; x < q.size; x++) {
+    if (!q.dark(x, y)) continue;
+    let len = 1; while (x + len < q.size && q.dark(x + len, y)) len++;
+    d += 'M' + (x + 4) + ' ' + (y + 4) + 'h' + len + 'v1h-' + len + 'z';
+    x += len - 1;
+  }
+  return '<svg class="qr" viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges" role="img" aria-label="QR code" data-version="' + q.version + '"><rect width="' + n + '" height="' + n + '" fill="#FFFFFF"/><path d="' + d + '" fill="#000000"/></svg>';
+}
+
+/* --- packing: bits, not text, so the code stays small --- */
+function BitOut() { this.bytes = []; this.cur = 0; this.n = 0; }
+BitOut.prototype.put = function (val, bits) {
+  for (let i = bits - 1; i >= 0; i--) {
+    this.cur = (this.cur << 1) | (Math.floor(val / Math.pow(2, i)) % 2);
+    if (++this.n === 8) { this.bytes.push(this.cur); this.cur = 0; this.n = 0; }
+  }
+};
+BitOut.prototype.done = function () { while (this.n) this.put(0, 1); return this.bytes; };
+function BitIn(bytes) { this.bytes = bytes; this.pos = 0; }
+BitIn.prototype.get = function (bits) {
+  let v = 0;
+  for (let i = 0; i < bits; i++) {
+    const byte = this.pos >> 3;
+    if (byte >= this.bytes.length) throw new Error('sum');
+    v = v * 2 + ((this.bytes[byte] >> (7 - (this.pos & 7))) & 1);
+    this.pos++;
+  }
+  return v;
+};
+const TAIL_DIGITS = [0, 3, 5, 8, 10, 13];
+function bytesToDigits(b) {
+  let out = '';
+  for (let i = 0; i < b.length; i += 6) {
+    const k = Math.min(6, b.length - i);
+    let v = 0; for (let j = 0; j < k; j++) v = v * 256 + b[i + j];
+    out += String(v).padStart(k === 6 ? 15 : TAIL_DIGITS[k], '0');
+  }
+  return out;
+}
+function digitsToBytes(s) {
+  const out = [], tail = s.length % 15, k = TAIL_DIGITS.indexOf(tail);
+  if (k < 0) throw new Error('sum');
+  for (let i = 0; i < s.length; i += 15) {
+    const n = i + 15 <= s.length ? 6 : k;
+    let v = Number(s.substr(i, 15));
+    const part = [];
+    for (let j = 0; j < n; j++) { part.unshift(v % 256); v = Math.floor(v / 256); }
+    if (v !== 0) throw new Error('sum');
+    part.forEach(function (x) { out.push(x); });
+  }
+  return out;
+}
+function fletcher(bytes) { let a = 0, b = 0; bytes.forEach(function (x) { a = (a + x) % 255; b = (b + a) % 255; }); return b * 256 + a; }
+/* both devices must know the same lists of words, bees and badges, in the same order */
+function catalogPrint() {
+  const s = WORDS.map(function (w) { return w.id; }).join(',') + '|' + AVATARS.map(function (a) { return a.id; }).join(',') + '|' + BADGES.map(function (b) { return b.id; }).join(',');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return (h ^ (h >>> 16)) & 0xFFFF;
+}
+const QR_WORDS = 82;                 /* words per code; more than this and the progress is spread over several codes */
+const DEV_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
+const WORD_BITS = Math.max(8, Math.ceil(Math.log(WORDS.length) / Math.LN2));
+function put48(o, v) { o.put(Math.floor(v / 4294967296), 16); o.put(v % 4294967296, 32); }
+function get48(i) { const hi = i.get(16); return hi * 4294967296 + i.get(32); }
+function packPart(id, wordIds, part, parts, nowMs, today) {
+  const p = normP(state.players[id]), o = new BitOut(), createdMin = Math.floor(nowMs / 60000);
+  o.put(1, 4); o.put(catalogPrint(), 16); o.put(part, 3); o.put(parts, 3);
+  o.put(createdMin, 32); o.put(today, 16); o.put(IDS.indexOf(id), 2);
+  const nameBytes = Array.from(new TextEncoder().encode(p.name)).slice(0, 63);
+  o.put(nameBytes.length, 6); nameBytes.forEach(function (b) { o.put(b, 8); });
+  o.put(p.grade - 4, 2);
+  o.put(Math.max(0, AVATARS.findIndex(function (a) { return a.id === p.av; })), 6);
+  put48(o, p.pt); put48(o, p.rz);
+  o.put(Math.min(65535, p.last), 16); o.put(Math.min(1023, p.streak), 10); o.put(Math.min(1023, p.best), 10); o.put(Math.min(4095, p.perfect), 12); o.put(Math.min(16383, p.rounds), 14);
+  const devs = Object.keys(p.rc).slice(0, 15);
+  o.put(devs.length, 4);
+  devs.forEach(function (k) { o.put(k.length, 4); k.split('').forEach(function (c) { o.put(DEV_CHARS.indexOf(c), 6); }); o.put(Math.min(65535, p.rc[k]), 16); });
+  AVATARS.forEach(function (a) { o.put(p.un[a.id] ? 1 : 0, 1); });
+  AVATARS.forEach(function (a) { o.put(p.bz[a.id] ? 1 : 0, 1); });
+  BADGES.forEach(function (b) { o.put(p.bd[b.id] ? 1 : 0, 1); });
+  const has = {}; wordIds.forEach(function (k) { has[k] = 1; });
+  const order = WORDS.filter(function (w) { return has[w.id]; });
+  const bitmap = order.length * WORD_BITS > WORDS.length;
+  o.put(order.length, 10); o.put(bitmap ? 1 : 0, 1);
+  if (bitmap) WORDS.forEach(function (w) { o.put(has[w.id] ? 1 : 0, 1); });
+  else order.forEach(function (w) { o.put(WORDS.indexOf(w), WORD_BITS); });
+  order.forEach(function (w) {
+    const e = p.words[w.id];
+    o.put(e.b, 3); o.put(Math.min(31, e.r), 5); o.put(Math.min(15, e.w), 4);
+    o.put(Math.max(0, Math.min(127, e.d - today + 40)), 7);
+    o.put(Math.max(0, Math.min(65535, Math.ceil((createdMin * 60000 - e.t) / 900000))), 16);
+  });
+  const body = o.done(), sum = fletcher(body);
+  return bytesToDigits(body.concat([sum >> 8, sum & 255]));
+}
+/* turns the digits back into the same shape a text transfer code carries */
+function unpackPart(digits) {
+  const all = digitsToBytes(digits);
+  if (all.length < 12) throw new Error('sum');
+  const body = all.slice(0, -2), sum = all[all.length - 2] * 256 + all[all.length - 1];
+  if (fletcher(body) !== sum) throw new Error('sum');
+  const i = new BitIn(body);
+  if (i.get(4) !== 1) throw new Error('print');
+  if (i.get(16) !== catalogPrint()) throw new Error('print');
+  const part = i.get(3), parts = i.get(3), createdMs = i.get(32) * 60000, today = i.get(16), slot = IDS[i.get(2)];
+  const nb = []; for (let n = i.get(6); n > 0; n--) nb.push(i.get(8));
+  const raw = { slot: slot, name: new TextDecoder().decode(new Uint8Array(nb)) };
+  raw.grade = i.get(2) + 4;
+  raw.av = (AVATARS[i.get(6)] || {}).id;
+  raw.pt = get48(i); raw.rz = get48(i);
+  raw.last = i.get(16); raw.streak = i.get(10); raw.best = i.get(10); raw.perfect = i.get(12); raw.rounds = i.get(14);
+  raw.rc = {};
+  for (let n = i.get(4); n > 0; n--) { let k = ''; for (let c = i.get(4); c > 0; c--) k += DEV_CHARS.charAt(i.get(6)); raw.rc[k] = i.get(16); }
+  raw.un = {}; raw.bz = {}; raw.bd = {};
+  AVATARS.forEach(function (a) { if (i.get(1)) raw.un[a.id] = Math.max(createdMs, raw.rz); });
+  AVATARS.forEach(function (a) { if (i.get(1)) raw.bz[a.id] = Math.max(createdMs, raw.rz); });
+  BADGES.forEach(function (b) { if (i.get(1)) raw.bd[b.id] = Math.max(createdMs, raw.rz); });
+  const count = i.get(10), bitmap = i.get(1), order = [];
+  if (bitmap) WORDS.forEach(function (w) { if (i.get(1)) order.push(w); });
+  else for (let n = 0; n < count; n++) order.push(WORDS[i.get(WORD_BITS)]);
+  if (order.length !== count || order.indexOf(undefined) >= 0) throw new Error('sum');
+  raw.w = order.map(function (w) {
+    const b = i.get(3), r = i.get(5), miss = i.get(4), d = i.get(7) - 40 + today, ago = i.get(16);
+    return [w.id, b, d, r, miss, Math.ceil(Math.max(createdMs - ago * 900000, raw.rz) / 1000)];
+  });
+  return { raw: raw, part: part, parts: parts, words: count };
+}
+function siteBase() { return ON_WEBSITE ? location.href.split('#')[0] : (state.settings.site || ''); }
+function makeQRLinks(id) {
+  const p = state.players[id], ids = WORDS.filter(function (w) { return p.words[w.id]; }).map(function (w) { return w.id; });
+  const parts = Math.min(7, Math.max(1, Math.ceil(ids.length / QR_WORDS))), per = Math.ceil(ids.length / parts), now = Date.now(), today = dayNum(), out = [];
+  for (let k = 0; k < parts; k++) out.push(siteBase() + '#q=' + packPart(id, ids.slice(k * per, (k + 1) * per), k + 1, parts, now, today));
+  return out;
+}
+let qrv = { pid: '', links: [], i: 0, msg: '' };
+let arrival = null;
+/* a scanned code arrives as the part of the address after "#q=" */
+function takeScan() {
+  const m = /^#q=(\d{20,9000})$/.exec(location.hash || '');
+  if (!m) return false;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* the address just keeps the code */ }
+  try {
+    const u = unpackPart(m[1]), res = importPlayers([u.raw])[0];
+    if (res && res.ok) arrival = { ok: true, html: 'Brought in ' + esc(res.name) + '’s progress (' + plural(u.words, 'word') + ').' + (u.parts > 1 ? ' That was code ' + u.part + ' of ' + u.parts + '. Scan the others too, in any order.' : '') };
+    else arrival = { ok: false, html: 'No free place for ' + esc(u.raw.name || 'this speller') + '. Both speller places on this device belong to other names.' };
+  } catch (e) {
+    arrival = { ok: false, html: e && e.message === 'print' ? 'That code was made by a different version of the game. Reload the game on both devices, then make a new code.' : 'That code did not come through whole. Scan it again.' };
+  }
+  return true;
+}
 
 /* ---------- speech ---------- */
 const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
@@ -1432,7 +1754,8 @@ function renderHome() {
       + '<div class="pc-go"><button type="button" class="btn" data-start="' + id + '">' + (played ? 'Play another round' : "Start today's round") + '</button>'
       + '<div class="pc-links"><button type="button" class="link" data-bees="' + id + '">My bee</button><button type="button" class="link" data-hive="' + id + '">My hive</button><button type="button" class="link" data-shelf="' + id + '">My badges</button><button type="button" class="link" data-edit="' + id + '">Edit</button></div></div></article>';
   }).join('');
-  $('v-home').innerHTML = '<h1>Who is spelling today?</h1>'
+  $('v-home').innerHTML = (arrival ? '<div class="unlock"><div class="who-new"><p class="tag">' + (arrival.ok ? 'Progress added' : 'Progress not added') + '</p><p>' + arrival.html + '</p></div><button type="button" class="btn quiet" data-arrival-close="1">OK</button></div>' : '')
+    + '<h1>Who is spelling today?</h1>'
     + '<p class="lede">Each round is ' + state.settings.len + ' words. ' + (flashMode() ? 'Look at the word, then type it from memory.' : 'Listen to the word, then type it.') + ' Words you miss come back tomorrow. Words you know come back later, until they stick.</p>'
     + '<div class="players">' + cards + '</div>';
 }
@@ -1762,6 +2085,15 @@ function renderGrown() {
     + '<div class="panel"><h2>How words are scheduled</h2><ol class="plain small"><li>A new word spelled right on the first try comes back in a week.</li><li>Right again, it comes back in two weeks and counts as mastered. After that, once a month.</li><li>A miss sends the word back to tomorrow, and it has to work its way up again.</li><li>Only the first try counts. Getting it on the second try is still a miss.</li></ol></div>'
     + '<div class="panel"><h2>Honey drops and bees</h2><p class="small">Every finished round earns 1 honey drop, and every badge earns 1 more. Badges are never taken away. A bee costs 2 to 8 drops, and all ' + AVATARS.filter(function (a) { return a.cost; }).length + ' cost ' + AVATARS.reduce(function (n, a) { return n + (a.cost || 0); }, 0) + '. ' + esc(pname(sel)) + ' has earned ' + badgeBank(p).rounds + ' from rounds and ' + badgeBank(p).badges + ' from badges, has traded ' + badgeBank(p).spent + ', and has ' + badgeBank(p).left + ' to spend.</p></div>'
     + '<div class="panel"><h2>Move progress to another device</h2>'
+      + '<h3>With a QR code</h3>'
+      + '<p class="small">This shows ' + esc(pname(sel)) + '\u2019s progress as a QR code. On the other device, open the camera, point it at the code, and tap the link that appears. The game opens there and adds the progress. Nothing gets overwritten.</p>'
+      + (ON_WEBSITE ? '' : '<div class="field"><label for="set-site">Website address of the game</label><input type="text" id="set-site" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://" value="' + esc(state.settings.site || '') + '"></div>')
+      + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="qr-show">Show QR code for ' + esc(pname(sel)) + '</button><span class="small msg-no" id="qr-status" aria-live="polite">' + esc(qrv.msg) + '</span></div>'
+      + (qrv.pid === sel && qrv.links.length ? '<div class="qrbox" id="qrbox">' + qrSVG(qrv.links[qrv.i])
+          + '<p><b>' + (qrv.links.length > 1 ? 'Code ' + (qrv.i + 1) + ' of ' + qrv.links.length + ' for ' : 'Code for ') + esc(pname(sel)) + '</b></p>'
+          + (qrv.links.length > 1 ? '<p class="small soft">There is too much progress for one code. Scan each one; the order does not matter.</p><div class="row" style="justify-content:center"><button type="button" class="btn quiet" id="qr-prev"' + (qrv.i ? '' : ' disabled') + '>Back</button><button type="button" class="btn quiet" id="qr-next"' + (qrv.i < qrv.links.length - 1 ? '' : ' disabled') + '>Next code</button></div>' : '')
+          + '<button type="button" class="link" id="qr-hide">Hide the code</button></div>' : '')
+      + '<h3>With a text code</h3>'
       + '<ol class="plain small"><li>On the device that has the progress, press Make a transfer code, then copy it.</li><li>Send the code to the other device, for example in a message, an email or a shared note.</li><li>On the other device, paste it into the box below and press Bring in progress.</li></ol>'
       + '<p class="small soft">One code carries everyone on this device. Nothing gets overwritten: spellers are matched by name, and for each word the more recent result is kept, so codes can go in either direction.</p>'
       + '<div class="row" style="align-items:center"><button type="button" class="btn quiet" id="xfer-make">Make a transfer code</button>'
@@ -1791,14 +2123,14 @@ function renderGrown() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', function (ev) {
-  const t = ev.target.closest('[data-go],[data-start],[data-hive],[data-edit],[data-sel],[data-hex],[data-bees],[data-bee],[data-buy-ask],[data-buy],[data-buy-no],[data-shelf],#unlock-all,#xfer-make,#xfer-copy,#xfer-share,#xfer-load,#fly-test,#hear,#hear-sent,#hear-slow,#peek,#quit,#voice-test,#ding-test,#fanfare-test,#reset-ask,#reset-yes,#reset-no');
+  const t = ev.target.closest('[data-go],[data-start],[data-hive],[data-edit],[data-sel],[data-hex],[data-bees],[data-bee],[data-buy-ask],[data-buy],[data-buy-no],[data-shelf],[data-arrival-close],#qr-show,#qr-next,#qr-prev,#qr-hide,#unlock-all,#xfer-make,#xfer-copy,#xfer-share,#xfer-load,#fly-test,#hear,#hear-sent,#hear-slow,#peek,#quit,#voice-test,#ding-test,#fanfare-test,#reset-ask,#reset-yes,#reset-no');
   if (!t) return;
   const it = round ? round.queue[round.i] : null;
   if (t.dataset.go) { confirmReset = false; confirmBee = ''; return show(t.dataset.go); }
   if (t.dataset.start) return startRound(t.dataset.start);
   if (t.dataset.hive) { sel = t.dataset.hive; return show('hive'); }
   if (t.dataset.edit) { editing[t.dataset.edit] = true; return renderHome(); }
-  if (t.dataset.sel) { sel = t.dataset.sel; confirmReset = false; return show(view); }
+  if (t.dataset.sel) { sel = t.dataset.sel; confirmReset = false; qrv = { pid: '', links: [], i: 0, msg: '' }; return show(view); }
   if (t.dataset.hex) return hexInfo(t.dataset.hex);
   if (t.dataset.bees) { sel = t.dataset.bees; confirmBee = ''; return show('bees'); }
   if (t.dataset.shelf) { sel = t.dataset.shelf; return show('shelf'); }
@@ -1856,6 +2188,18 @@ document.addEventListener('click', function (ev) {
     if (!flyBee(sel, $('test-bee'))) $('fly-status').textContent = 'This device is set to reduce motion, so the flight is skipped.';
     return;
   }
+  if (t.dataset.arrivalClose) { arrival = null; return renderHome(); }
+  if (t.id === 'qr-show') {
+    qrv = { pid: '', links: [], i: 0, msg: '' };
+    if (!state.players[sel].name) qrv.msg = 'Give this speller a name first.';
+    else if (!siteBase()) qrv.msg = 'Type the website address of the game first, starting with https://';
+    else { qrv.pid = sel; qrv.links = makeQRLinks(sel); }
+    renderGrown();
+    const box = $('qrbox'); if (box) box.scrollIntoView({ block: 'center' });
+    return;
+  }
+  if (t.id === 'qr-next' || t.id === 'qr-prev') { qrv.i = Math.max(0, Math.min(qrv.links.length - 1, qrv.i + (t.id === 'qr-next' ? 1 : -1))); renderGrown(); const box = $('qrbox'); if (box) box.scrollIntoView({ block: 'center' }); return; }
+  if (t.id === 'qr-hide') { qrv = { pid: '', links: [], i: 0, msg: '' }; return renderGrown(); }
   if (t.id === 'unlock-all') {
     const p = state.players.t, now = Date.now();
     AVATARS.forEach(function (a) { if (a.cost) p.un[a.id] = p.un[a.id] || now; });
@@ -1913,6 +2257,7 @@ document.addEventListener('input', function (ev) {
 document.addEventListener('change', function (ev) {
   if (ev.target.id === 'set-len') { state.settings.len = normSettings({ len: ev.target.value }).len; saveSettings(); }
   if (ev.target.id === 'set-flash') { state.settings.flash = ev.target.checked; saveSettings(); }
+  if (ev.target.id === 'set-site') { state.settings.site = cleanSite(ev.target.value); ev.target.value = state.settings.site; saveSettings(); }
   if (ev.target.id === 'set-keys') { state.settings.keys = ev.target.checked; saveSettings(); if (ev.target.checked) keySound(false); }
   if (ev.target.id === 'set-sound') { state.settings.sound = ev.target.checked; saveSettings(); if (ev.target.checked) ding(true); }
 });
@@ -1921,6 +2266,8 @@ document.addEventListener('change', function (ev) {
 loadLocal();
 if (IDS.filter(function (id) { return checkBadges(state.players[id]).length; }).length) saveLocal();
 $('brand-bee').innerHTML = beeSVG(AV_BY_ID.zip, 'happy');
+takeScan();
+window.addEventListener('hashchange', function () { if (takeScan()) show('home'); });
 show('home');
 initDb();
 </script>
