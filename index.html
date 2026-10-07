@@ -711,9 +711,9 @@ const AVATARS = [
   { id: 'riff', name: 'Riff', bg: '#4B5878', acc: 'rock', cost: 5 },
   { id: 'vex', name: 'Vex', bg: '#9D7BE0', acc: 'villain', cost: 5 },
   { id: 'cosmo', name: 'Cosmo', bg: '#3A3F8F', acc: 'space', cost: 6 },
-  { id: 'fang', name: 'Fang', bg: '#4A2F6B', acc: 'vampire', head: '#FFE9A6', cost: 6 },
+  { id: 'fang', name: 'Fang', bg: '#9470D2', acc: 'vampire', head: '#FFE9A6', cost: 6 },
   { id: 'bolts', name: 'Bolts', bg: '#9FB0C8', acc: 'monster', body: '#B5DD6B', cost: 6 },
-  { id: 'jack', name: 'Jack', bg: '#2F6B4F', acc: 'pumpkin', body: '#FFA63D', head: '#FFD23F', cost: 6 },
+  { id: 'jack', name: 'Bones', bg: '#7C92EA', acc: 'skeleton', body: '#1E1730', stripe: '#1E1730', head: '#F6F2E6', cost: 6 },   /* the id stays 'jack' so saved progress and QR codes carry over */
   { id: 'wraps', name: 'Wraps', bg: '#3D5A80', acc: 'mummy', body: '#F1EBDD', stripe: '#CFC6B0', cost: 6 },
   { id: 'goldie', name: 'Goldie', bg: '#FFF4BF', acc: 'gold', body: '#FFD21F', stripe: '#C98A00', cost: 8 }
 ];
@@ -741,6 +741,7 @@ function beeSVG(av, mood, cls) {
   s += '<circle cx="50" cy="50" r="47" fill="' + av.bg + '"' + ol + ' stroke-width="3"/>';
   if (acc === 'vampire') s += '<circle cx="24" cy="26" r="7.5" fill="#FFF3B0"' + ol + ' stroke-width="1.4"/><circle cx="21.5" cy="24" r="1.5" fill="#F2DE86"/><circle cx="26.5" cy="28.5" r="1.1" fill="#F2DE86"/>';
   if (acc === 'monster') s += '<path d="M76 16 L69 29 L75 29 L71 40 L83 25 L77 25 Z" fill="#FFE066"' + ol + ' stroke-width="1.4"/>';
+  if (acc === 'skeleton') s += '<circle cx="17" cy="33" r="1.7" fill="#FFFFFF"/><circle cx="85" cy="30" r="1.4" fill="#FFFFFF"/><circle cx="87" cy="70" r="1.7" fill="#FFFFFF"/><circle cx="12" cy="68" r="1.3" fill="#FFFFFF"/>' + star4(82, 46, 4, '#FFE066') + star4(20, 20, 3, '#FFE066');
   if (acc === 'space') s += '<circle cx="20" cy="30" r="1.8" fill="#FFFFFF"/><circle cx="83" cy="22" r="1.4" fill="#FFFFFF"/><circle cx="85" cy="68" r="1.8" fill="#FFFFFF"/><circle cx="13" cy="64" r="1.3" fill="#FFFFFF"/>' + star4(84, 44, 4, '#FFE066');
   if (acc === 'gold') s += star4(16, 28, 6, '#FFFFFF') + star4(85, 34, 5, '#FFFFFF') + star4(83, 79, 4, '#FFFFFF');
   s += '<g class="wing-l"><ellipse cx="27" cy="55" rx="15" ry="10" transform="rotate(-32 27 55)" fill="' + wing + '"' + ol + ' stroke-width="2.5"/></g>';
@@ -749,6 +750,7 @@ function beeSVG(av, mood, cls) {
   s += '<clipPath id="bc' + n + '"><ellipse cx="50" cy="68" rx="21" ry="19"/></clipPath>';
   s += '<ellipse cx="50" cy="68" rx="21" ry="19" fill="' + body + '"/>';
   s += '<g clip-path="url(#bc' + n + ')"><path d="M25 63 Q50 71 75 63 L75 70 Q50 78 25 70 Z" fill="' + stripe + '"/><path d="M25 75 Q50 83 75 75 L75 82 Q50 90 25 82 Z" fill="' + stripe + '"/></g>';
+  if (acc === 'skeleton') s += '<g clip-path="url(#bc' + n + ')" fill="none" stroke="#F6F2E6" stroke-linecap="round"><path d="M50 52 L50 86" stroke-width="3.2"/><path d="M34.5 64.5 Q50 57 65.5 64.5 M33 72.5 Q50 65 67 72.5 M36 80.5 Q50 73.5 64 80.5" stroke-width="3.4"/></g>';
   s += '<ellipse cx="50" cy="68" rx="21" ry="19" fill="none"' + ol + ' stroke-width="3"/>';
   if (acc === 'vampire') s += '<path d="M27 64 L19 30 L36 48 L50 60 L64 48 L81 30 L73 64 Q50 74 27 64 Z" fill="#1E1730"' + ol + ' stroke-width="2.6"/><path d="M31 61 L25.5 40 L38 53 L50 62 L62 53 L74.5 40 L69 61 Q50 68 31 61 Z" fill="#D62839"/>';
   if (acc === 'monster') s += '<rect x="24" y="45.5" width="9" height="5.5" rx="1.4" fill="#AEB7C4"' + ol + ' stroke-width="2"/><rect x="67" y="45.5" width="9" height="5.5" rx="1.4" fill="#AEB7C4"' + ol + ' stroke-width="2"/>';
@@ -768,11 +770,20 @@ function beeSVG(av, mood, cls) {
       ? '<path d="M' + (cx - 4) + ' 42 Q' + cx + ' 35 ' + (cx + 4) + ' 42" fill="none"' + ol + ' stroke-width="2.8"/>'
       : '<ellipse cx="' + cx + '" cy="40" rx="3.6" ry="5" fill="' + BK + '"/><circle cx="' + (cx + 1.2) + '" cy="38" r="1.4" fill="#FFFFFF"/>';
   };
-  s += eye(42.5, acc === 'pirate' || acc === 'shades' || acc === 'villain') + eye(57.5, acc === 'shades' || acc === 'villain');
+  s += eye(42.5, acc === 'pirate' || acc === 'shades' || acc === 'villain' || acc === 'skeleton') + eye(57.5, acc === 'shades' || acc === 'villain' || acc === 'skeleton');
   if (acc === 'villain') s += mood === 'cheer'
     ? '<path d="M38.5 43 Q42.5 37.5 46.5 43 M53.5 43 Q57.5 37.5 61.5 43" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>'
     : '<path d="M37.5 38.5 L47 41.5 Q46.5 45.5 42.5 45.5 Q38 45.5 37.5 38.5 Z M62.5 38.5 L53 41.5 Q53.5 45.5 57.5 45.5 Q62 45.5 62.5 38.5 Z" fill="#FFFFFF"/><circle cx="43.4" cy="43" r="1.5" fill="' + BK + '"/><circle cx="56.6" cy="43" r="1.5" fill="' + BK + '"/>';
-  if (acc !== 'ninja' && acc !== 'mummy') {
+  if (acc === 'skeleton') {
+    s += mood === 'cheer'
+      ? '<path d="M36.4 43.4 Q42 30.5 47.6 43.4 Q42 39.4 36.4 43.4 Z M52.4 43.4 Q58 30.5 63.6 43.4 Q58 39.4 52.4 43.4 Z" fill="' + BK + '"' + ol + ' stroke-width="1.2"/>'
+      : '<ellipse cx="42" cy="39.5" rx="5.8" ry="6.8" fill="' + BK + '"/><ellipse cx="58" cy="39.5" rx="5.8" ry="6.8" fill="' + BK + '"/><circle cx="43.6" cy="37.6" r="1.9" fill="#FFFFFF"/><circle cx="59.6" cy="37.6" r="1.9" fill="#FFFFFF"/>';
+    s += '<path d="M50 45 L47.8 49 L52.2 49 Z" fill="' + BK + '"' + ol + ' stroke-width="1"/><path d="M57.5 21.5 L55.5 26 L59.5 28.5" fill="none" stroke="' + BK + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    if (mood === 'cheer') s += '<path d="M41 51 Q50 53.6 59 51 Q57.6 59 50 59 Q42.4 59 41 51 Z" fill="' + BK + '"' + ol + ' stroke-width="2"/><path d="M44.4 52.5 L44.8 55 L48.4 55.4 L48.4 53.1 Z M51.6 53.1 L51.6 55.4 L55.2 55 L55.6 52.5 Z" fill="#FFFFFF"/>';
+    else if (mood === 'oops') s += '<ellipse cx="50" cy="54" rx="2.6" ry="3.2" fill="' + BK + '"/>';
+    else s += '<path d="M40.5 51.5 Q50 58 59.5 51.5" fill="none"' + ol + ' stroke-width="2.2"/><path d="M44 52.6 L43.4 55.4 M48 54 L47.8 57 M52 54 L52.2 57 M56 52.6 L56.6 55.4" fill="none" stroke="' + BK + '" stroke-width="1.6" stroke-linecap="round"/>';
+  }
+  if (acc !== 'ninja' && acc !== 'mummy' && acc !== 'skeleton') {
     s += '<circle cx="35.5" cy="47.5" r="3.6" fill="#FF8FAB" fill-opacity=".8"/><circle cx="64.5" cy="47.5" r="3.6" fill="#FF8FAB" fill-opacity=".8"/>';
     if (mood === 'cheer') s += '<path d="M44.5 47.5 Q50 57 55.5 47.5 Z" fill="#8A2346"' + ol + ' stroke-width="2"/>';
     else if (mood === 'oops') s += '<ellipse cx="50" cy="51" rx="2.6" ry="3.2" fill="' + BK + '"/>';
@@ -798,10 +809,6 @@ function beeSVG(av, mood, cls) {
   if (acc === 'vampire') s += '<path d="M30.5 35 Q30.5 19.5 50 19.5 Q69.5 19.5 69.5 35 Q63 27.5 55 27 L50 34 L45 27 Q37 27.5 30.5 35 Z" fill="#1E1730"' + ol + ' stroke-width="2.2"/><circle cx="50" cy="60.5" r="2.8" fill="#D62839"' + ol + ' stroke-width="1.6"/>';
   if (acc === 'monster') s += '<path d="M29.5 33 L29.5 21 Q29.5 17 33.5 17 L66.5 17 Q70.5 17 70.5 21 L70.5 33 L66 29 L61 33 L56 29 L50 33 L44 29 L39 33 L34 29 Z" fill="#1E1730"' + ol + ' stroke-width="2.2"/>'
     + '<path d="M62.5 45.5 L67 52 M62.2 48.4 L65.4 46.4 M63.9 50.8 L67.1 48.8" fill="none" stroke="' + BK + '" stroke-width="1.5" stroke-linecap="round"/>';
-  if (acc === 'pumpkin') s += '<path d="M30.5 32 Q30 13 50 13 Q70 13 69.5 32 Q60 27.5 50 28.5 Q40 27.5 30.5 32 Z" fill="#FF8A1F"' + ol + ' stroke-width="2.6"/>'
-    + '<path d="M40.5 14.8 Q36.5 21 38 28.6 M59.5 14.8 Q63.5 21 62 28.6" fill="none" stroke="#D9660A" stroke-width="1.6" stroke-linecap="round"/>'
-    + '<path d="M42 21.5 L46.4 21.5 L44.2 17.6 Z M53.6 21.5 L58 21.5 L55.8 17.6 Z" fill="' + BK + '"/><path d="M43 24 L45.5 26 L48 24 L50 26 L52 24 L54.5 26 L57 24" fill="none" stroke="' + BK + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
-    + '<path d="M47 13.6 L46 6.8 Q50 4.6 54 6.8 L53 13.6 Z" fill="#3E9B4F"' + ol + ' stroke-width="2"/><path d="M54 8.5 Q60 5 62 9 Q63 12.5 59.5 12" fill="none" stroke="#3E9B4F" stroke-width="2" stroke-linecap="round"/>';
   if (acc === 'mummy') s += '<path d="M33.5 28.5 Q50 23 66.5 28.5 M38.5 23.6 Q50 20.6 61.5 23.6 M34.5 53 Q50 49.5 65.5 53 M41 57.6 Q50 55.8 59 57.6 M36 30.5 L41 22.5 M60 21.5 L64 29" fill="none" stroke="#B8AE96" stroke-width="1.7" stroke-linecap="round"/>'
     + '<path d="M68 51 Q77 50.5 79 59 Q80 63.5 76 65.5" fill="none" stroke="' + BK + '" stroke-width="6.4" stroke-linecap="round"/><path d="M68 51 Q77 50.5 79 59 Q80 63.5 76 65.5" fill="none" stroke="#F1EBDD" stroke-width="3" stroke-linecap="round"/>';
   if (acc === 'cowboy') s += '<path d="M37 56.5 Q50 62 63 56.5 L50 70 Z" fill="#E63946"' + ol + ' stroke-width="2.2"/><circle cx="47" cy="61" r="1.2" fill="#FFFFFF"/><circle cx="53" cy="61" r="1.2" fill="#FFFFFF"/><circle cx="50" cy="65" r="1.2" fill="#FFFFFF"/>'
